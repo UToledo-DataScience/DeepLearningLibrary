@@ -1,10 +1,11 @@
 #ifndef PLACEHOLDER
 #define PLACEHOLDER
 #include <iostream>
+#include <cassert>
 
 // class for allocating data
 // TODO: ensure it outlives the tensors it allocates
-template <class T>
+template <class AlDType>
 class Allocator {
     uint64_t bytes_allocated;
     uint64_t bytes_unallocated;
@@ -14,18 +15,18 @@ class Allocator {
         Allocator(): bytes_allocated(0),
                      bytes_unallocated(0),
                      bytes_currently_allocated(0)
-        {}
+            {}
 
-        T* allocate(uint64_t count) {
-            T* data = (T*)calloc(count, sizeof(T));
+        AlDType* allocate(uint64_t count) {
+            AlDType* data = (AlDType*)calloc(count, sizeof(AlDType));
 
-            bytes_allocated = count * sizeof(T);
+            bytes_allocated = count * sizeof(AlDType);
             bytes_currently_allocated = bytes_allocated;
 
             return data;
         }
 
-        T* deallocate(T* data) {
+        AlDType* deallocate(AlDType* data) {
             free(data);
             data = nullptr;
 
@@ -35,12 +36,12 @@ class Allocator {
             return data;
         }
 
-        T* reallocate(T* data, uint64_t new_count) {
+        AlDType* reallocate(AlDType* data, uint64_t new_count) {
             free(data);
-            data = (T*)calloc(new_count, sizeof(T));
+            data = (AlDType*)calloc(new_count, sizeof(AlDType));
 
             bytes_unallocated += bytes_currently_allocated;
-            bytes_currently_allocated = new_count * sizeof(T);
+            bytes_currently_allocated = new_count * sizeof(AlDType);
             bytes_allocated += bytes_currently_allocated;
 
             return data;
@@ -58,20 +59,20 @@ class Allocator {
 //
 // in the graph, this will be the object
 // to hold the data for a tensor
-template <class T>
+template <typename PhDType>
 class Placeholder {
-    T* data;
+    PhDType* data;
     uint64_t size;
 
     void fillData() {
         for (int i = 0; i < size; i++)
-            data[i] = i*(i-1);
+            data[i] = (i+1)*(i+2);
     }
 
     public:
         Placeholder(): size(0) {}
 
-        Placeholder(Allocator<T>* allocator, uint64_t count) {
+        Placeholder(Allocator<PhDType>* allocator, uint64_t count) {
             size = count;
             data = allocator->allocate(count);
             fillData();
@@ -82,10 +83,16 @@ class Placeholder {
                 free(data);
         }
 
-        void initialize(Allocator<T>* allocator, uint64_t new_size) {
+        void initialize(Allocator<PhDType>* allocator, uint64_t new_size) {
             data = allocator->allocate(new_size);
             size = new_size;
             fillData();
+        }
+
+        PhDType getIndex(uint64_t index) {
+            assert(data != nullptr);
+            assert(index < size);
+            return data[index];
         }
 
         void print() {
@@ -97,6 +104,8 @@ class Placeholder {
         // naive print function
         // obviously ill-suited for higher dimensions
         // and sizes
+        //
+        // only deals with the last two dimensions
         void print(std::vector<int> shape) {
             int r = *(shape.end()-2);
             int c = *(shape.end()-1);

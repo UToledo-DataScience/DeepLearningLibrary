@@ -47,6 +47,7 @@ class Multiplication : public Operation<OpDType> {
             return a + b;
         }
 
+        // fix
         OpDType operate() {
             OpDType p1, p2;
 

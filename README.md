@@ -1,6 +1,8 @@
 # DeepLearningLibrary
 Mathematical computations library designed for applications in deep learning.
 
+NOTE: the library is currently not functional. What's currently here is still very heavy in development.
+
 ## TODO
 - Basic mathematical operations aside from multiplication
 - Computation needs a LOT of work to accommodate different shapes

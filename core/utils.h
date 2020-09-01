@@ -1,6 +1,8 @@
 #ifndef UTILS
 #define UTILS
 #include <vector>
+#include <sstream>
+#include <algorithm>
 
 // return true if vectors are element-wise equal
 // otherwise false
@@ -17,4 +19,65 @@ bool compare(std::vector<int>& v1, std::vector<int>& v2) {
 
     return true;
 }
+
+template <typename T>
+std::string vecToString(std::vector<T>& vec) {
+    try {
+        std::stringstream ss;
+        ss << "( ";
+        for (auto i : vec)
+            ss << i << " ";
+
+        ss << ")";
+
+        return ss.str();
+    }
+    catch(std::exception& e) {
+        std::cout << e.what() << std::endl;
+        return e.what();
+    }
+}
+
+// checks for broadcastability between the two vectors
+// true for yes, false for no
+//
+// final dimension must be one or both of the following:
+//   - be equal for both shapes
+//   - be 1 for at least one of the shapes
+bool broadcastable(std::vector<int>& v1, std::vector<int>& v2) {
+    // check for violation of the above conditions
+    if (v1.back() != v2.back() && v1.back() != 1 && v2.back() != 1) {
+        std::cout << "Error: shapes " << vecToString(v1)
+                  << " and " << vecToString(v2) << " are incompatible broadcast shapes." << std::endl;
+
+        return false;
+    }
+
+    int diff = std::max(v1.size(), v2.size()) - std::min(v1.size(), v2.size());
+    std::vector<int>* bigger_vec;
+    std::vector<int>* smaller_vec;
+
+    // else block covers the case where v1.size() == v2.size()
+    // as well as if v2.size() > v1.size()
+    if (v1.size() > v2.size()) {
+        bigger_vec = &v1;
+        smaller_vec = &v2;
+    }
+    else {
+        bigger_vec = &v2;
+        smaller_vec = &v1;
+    }
+
+    for (int i = bigger_vec->size()-2; i-diff > -1; i--) {
+        if (bigger_vec->at(i) != smaller_vec->at(i-diff)) {
+            std::cout << "Error: shapes " << vecToString(v1)
+                      << " and " << vecToString(v2) << " are incompatible broadcast shapes." << std::endl;
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
 #endif

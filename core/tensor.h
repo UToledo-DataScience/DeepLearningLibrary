@@ -1,62 +1,134 @@
 #ifndef TENSOR
 #define TENSOR
-#include <iostream>
 #include <cassert>
 #include <vector>
-#include "core/placeholder.h"
+#include <memory>
+#include "core/buffer.h"
 #include "core/operations.h"
 #include "core/utils.h"
 
+namespace deeplib {
+
+class Operation;
+
 template <typename TensorDType>
 class Tensor {
-    Placeholder<TensorDType>* placeholder;
-    std::vector<int> shape;
+    uint32_t children;
+    std::vector<int>* shape;
 
-    Operation<TensorDType>* operation;
+    // questioning the need for shared_ptr
+    std::shared_ptr<Buffer<TensorDType>> backend;
+    Allocator<TensorDType>* allocator;
 
-    public:
-        // fresh tensor
-        Tensor(std::vector<int> s, Allocator<TensorDType>* allocator) {
-            int total_size = 1;
-            for (int i : s) {
-                shape.push_back(i);
-                total_size *= i;
+    operations::Operation<TensorDType>* operation;
+
+    std::shared_ptr<Buffer<TensorDType>> getBackend() { return backend; }
+
+    void incrChildren() { children++; }
+
+  public:
+    // fresh tensor
+    Tensor(std::vector<TensorDType> values, std::vector<int> s, Allocator<TensorDType>* a) {
+        children = 0;
+        allocator = a;
+        backend = std::make_shared<Buffer<TensorDType>>(Buffer<TensorDType>(values, s, a));
+        operation = new operations::Constant<TensorDType>(backend);
+    }
+
+    // tensor from binary operation
+    // TODO: immediate allocation NEEDS to be changed to memory being allocated
+    //       at a later time e.g. when the user calls Tensor.operate()
+    Tensor(Tensor<TensorDType>* t1, Tensor<TensorDType>* t2, operations::Operation<TensorDType>* op) {
+        children = 0;
+
+        if (t1 == t2) {
+            backend = std::make_shared<Buffer<TensorDType>>(
+                        Buffer<TensorDType>(t1->getShape(), t1->getAllocator()));
+
+            t1->incrChildren();
+        }
+
+        // Buffer shenanigans if a tensor is used in two or more operations.
+        //
+        // For each tensor, n-1 buffers need to be allocated
+        // where n is the number of children from the tensor's operation node.
+        //
+        // When a new buffer is allocated, the initially allocated buffer
+        // needs moved to the latest tensor so that in-place calculations
+        // don't overwrite the original buffer and throw off the rest
+        // of the calculation graph.
+        else if (t1->getSize() >= t2->getSize()) {
+            if (t1->getChildren() > 0) {
+                backend = t1->getBuffer();
+                t1->setBuffer(std::make_shared<Buffer<TensorDType>>(
+                        Buffer<TensorDType>(t1->getBuffer())));
+
+                t1->incrChildren();
             }
+            // to also account for if t1.size == t2.size
+            else if (t2->getChildren() > 0) {
+                backend = t2->getBuffer();
+                t2->setBuffer(std::make_shared<Buffer<TensorDType>>(
+                        Buffer<TensorDType>(t2->getBuffer())));
 
-            placeholder = new Placeholder<TensorDType>(allocator, total_size);
-            operation = new Constant<TensorDType>(placeholder);
+                t2->incrChildren();
+            }
+            else {
+                backend = t1->getBackend();
+                t1->incrChildren();
+            }
+        }
+        else {
+            if (t2->getChildren() > 0) {
+                backend = t1->getBuffer();
+                t2->setBuffer(std::make_shared<Buffer<TensorDType>>(
+                        Buffer<TensorDType>(t2->getBuffer())));
+
+                t2->incrChildren();
+            }
+            else {
+                backend = t2->getBackend();
+                t2->incrChildren();
+            }
         }
 
-        // tensor from binary operation
-        Tensor(Tensor<TensorDType>* t1, Tensor<TensorDType>* t2, std::string op) {
-            assert(compare(t1->getShape(), t2->getShape()));
+        operation = op;
 
-            // TODO: accomodate the other operations, as well as different shapes
-            //       i.e. make better
-            
-            for (int i : t1->getShape())
-                shape.push_back(i);
+        operation->setBuffer(backend);
+    }
 
-            placeholder = t1->getPlaceholder();
-            operation = new Multiplication(t1->getOperation(), t2->getOperation());
-        }
+    // TODO: REFERENCE COUNTS
+    ~Tensor() {
+        //delete placeholder;
+        //delete operation;
+    }
 
-        // TODO: REFERENCE COUNTS
-        ~Tensor() {
-            //delete placeholder;
-            //delete operation;
-        }
+    // operates the tensor,
+    // bringing the data in the buffer up to speed
+    // at the current operation
+    void operate() { operation->operate(); }
 
-        TensorDType operate() { return operation->operate(); }
+    std::vector<int>& getShape() { return backend->getShape(); }
 
-        Placeholder<TensorDType>* getPlaceholder() { return placeholder; }
+    uint64_t getSize() { return backend->getSize(); }
 
-        std::vector<int>& getShape() { return shape; }
+    uint32_t getChildren() { return children; }
 
-        Operation<TensorDType>* getOperation() { return operation; }
+    operations::Operation<TensorDType>* getOperation() { return operation; }
 
-        void print() {
-            placeholder->print(shape);
-        }
+    Allocator<TensorDType>* getAllocator() { return backend->getAllocator(); }
+
+    std::shared_ptr<Buffer<TensorDType>> getBuffer() { return backend; }
+
+    void setBuffer(std::shared_ptr<Buffer<TensorDType>> buf) {
+        backend = buf;
+        operation->setBuffer(buf);
+    }
+
+    void print() {
+        backend->print();
+    }
 };
+
+} // namespace deeplib
 #endif

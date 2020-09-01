@@ -1,32 +1,32 @@
 #include <iostream>
 #include <vector>
-#include "core/placeholder.h"
 #include "core/tensor.h"
-#include "core/operations.h"
+#include "core/op_functions.h"
 
 using namespace std;
+using namespace deeplib;
 
-// f(x) = x^3
-// df/dx = 3x^2
+// Operations displayed below are := f(x, y) = (x^2 * y)^2
+// where x == { 2, 2 } and y == { 3, 2 }
 
 int main() {
     Allocator<int> a;
 
-    // default value of 2
-    Tensor<int> t1({ 1 }, &a);
-    Tensor<int> t2({ 1 }, &a);
-    Tensor<int> t3({ 1 }, &a);
+    vector<int> v11 = { 2, 2 };
+    vector<int> v22 = { 3, 2 };
 
-    Tensor<int> t4(&t1, &t2, "multiplication");
-    Tensor<int> t5(&t4, &t3, "multiplication");
+    vector<int> s = { 2 };
 
-    // f(2) = 8
-    cout << t5.operate() << endl;
+    Tensor<int> t1(v11, s, &a);
+    Tensor<int> t2(v22, s, &a);
 
-    Tensor<int> t6(&t5, &t5, "multiplication");
+    Tensor<int> t3 = mult(&t1, &t2);
+    t3 = mult(&t3, &t1); // replacing variables maintains the graph
 
-    // f(2) * f(2) = 64
-    cout << t6.operate() << endl;
+    t3 = mult(&t3, &t3); // using binary operators for unary operation also maintains graph
+                         // e.g. here it is t3 * t3 == t3^2
+    t3.operate();
+    t3.print();
 
     a.printStats();
 }

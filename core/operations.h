@@ -5,17 +5,14 @@
 #include "core/buffer.h"
 
 using std::string;
-using deeplib::Buffer;
 
-namespace operations {
+namespace deeplib {
 
-/*const string MULT;
-const string DIV;
-const string ADD;
-const string SUB;
-const string EXP;
-const string LOG;
-const string POW;*/
+template <typename T>
+class Buffer;
+
+template <typename T>
+class Allocator;
 
 // TODO: how closely tied should tensors and operations be?
 
@@ -41,6 +38,8 @@ const string POW;*/
 // This is never to be used directly.
 template <typename OpDType>
 class Operation {
+    friend class Allocator<OpDType>;
+
   protected:
     string name_;
     string type_;
@@ -48,21 +47,19 @@ class Operation {
     Operation<OpDType>* parent1_;
     Operation<OpDType>* parent2_;
 
-    std::shared_ptr<Buffer<OpDType>> buffer_;
+    Buffer<OpDType>* buffer_;
 
   public:
-    Operation() {
-        parent1_ = nullptr;
-        parent2_ = nullptr;
-        buffer_ = nullptr;
-    }
+    Operation();
 
     Operation(Operation<OpDType>* p1, Operation<OpDType>* p2);
-    Operation(std::shared_ptr<Buffer<OpDType>> buf);
+    Operation(Buffer<OpDType>* buf);
 
-    virtual void setBuffer(std::shared_ptr<Buffer<OpDType>> buf) = 0;
+    virtual void setBuffer(Buffer<OpDType>* buf) = 0;
+    virtual Buffer<OpDType>* getBuffer() = 0;
+
     virtual void derive() = 0;
-    virtual std::shared_ptr<Buffer<OpDType>> operate() = 0;
+    virtual Buffer<OpDType>* operate() = 0;
 
     string getType();
 };
@@ -71,100 +68,50 @@ class Operation {
 // only to be used within Tensor<T> objects
 template <typename OpDType>
 class Multiplication : public Operation<OpDType> {
-  //private:
-  //  OpDType multiply(Buffer<OpDType>* p1, Buffer<OpDType>* p2,
-  //                   std::vector<OpDType>& shape1, std::vector<OpDType>& shape2) {
-
   public:
-    Multiplication(Operation<OpDType>* p1, Operation<OpDType>* p2) {
-        this->parent1_ = p1;
-        this->parent2_ = p2;
-        this->type_ = "multiplication";
-    }
+    Multiplication(Operation<OpDType>* p1, Operation<OpDType>* p2);
 
-    void setBuffer(std::shared_ptr<Buffer<OpDType>> buf) { this->buffer_ = buf; }
+    void setBuffer(Buffer<OpDType>* buf);
+    Buffer<OpDType>* getBuffer();
 
-    void derive() {
-        //OpDType a = this->parent1_->operate() * this->parent2_->derive();
-        //OpDType b = this->parent2_->operate() * this->parent1_->derive();
-
-        //return a + b;
-    }
+    void derive();
 
     // NOTE: broadcasting not yet supported
     //
     // element-wise multiplication - no shape change
-    std::shared_ptr<Buffer<OpDType>> operate() {
-        this->buffer_->initialize();
-
-        std::shared_ptr<Buffer<OpDType>> p1, p2;
-
-        p1 = this->parent1_->operate();
-        p2 = this->parent2_->operate();
-
-        for (uint64_t i = 0; i < p1->getSize(); i++)
-            this->buffer_->setIndex(i, p1->getIndex(i) * p2->getIndex(i));
-
-        return this->buffer_;
-    }
+    Buffer<OpDType>* operate();
 };
 
 template <typename OpDType>
 class Power : public Operation<OpDType> {
   public:
-    Power(Operation<OpDType>* p1, Operation<OpDType>* p2) {
-        this->parent1_ = p1;
-        this->parent2_ = p2;
-        this->type_ = "power";
-    }
+    Power(Operation<OpDType>* p1, Operation<OpDType>* p2);
 
-    void setBuffer(std::shared_ptr<Buffer<OpDType>> buf) { this->buffer_ = buf; }
+    void setBuffer(Buffer<OpDType>* buf);
+    Buffer<OpDType>* getBuffer();
 
-    void derive() {
-        //OpDType a = this->parent1_->operate() * this->parent2_->derive();
-        //OpDType b = this->parent2_->operate() * this->parent1_->derive();
-
-        //return a + b;
-    }
+    void derive();
 
     // NOTE: broadcasting not yet supported
     //
     // element-wise multiplication - no shape change
-    std::shared_ptr<Buffer<OpDType>> operate() {
-        this->buffer_->initialize();
-
-        std::shared_ptr<Buffer<OpDType>> p1, p2;
-
-        p1 = this->parent1_->operate();
-        p2 = this->parent2_->operate();
-
-        // NOTE: using std::pow here is temporary and will have to change
-        //       it's only here right now for foundational purposes
-        for (uint64_t i = 0; i < p1->getSize(); i++)
-            this->buffer_->setIndex(i, std::pow(p1->getIndex(i), p2->getIndex(0)));
-
-        return this->buffer_;
-    }
+    Buffer<OpDType>* operate();
 };
 
 template <typename OpDType>
 class Constant : public Operation<OpDType> {
   public:
-    Constant(std::shared_ptr<Buffer<OpDType>> buf) {
-        this->buffer_ = buf;
-        this->type_ = "constant";
-    }
+    Constant(Buffer<OpDType>* buf);
 
-    void setBuffer(std::shared_ptr<Buffer<OpDType>> buf) { this->buffer_ = buf; }
+    void setBuffer(Buffer<OpDType>* buf);
+    Buffer<OpDType>* getBuffer();
 
-    void derive() {
-        return;
-    }
+    void derive();
 
-    std::shared_ptr<Buffer<OpDType>> operate() {
-        return this->buffer_;
-    }
+    Buffer<OpDType>* operate();
 };
 
-} // namespace operations
+} // namespace deeplib
+
+#include "core/operations.cpp"
 #endif

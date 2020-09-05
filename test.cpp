@@ -28,5 +28,7 @@ int main() {
     t3.operate();
     t3.print();
 
+    a.uproot(&t3);
+
     a.printStats();
 }

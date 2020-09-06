@@ -10,17 +10,17 @@ using namespace deeplib;
 // where x == { 2, 2 } and y == { 3, 2 }
 
 int main() {
-    Allocator<int> a;
+    Allocator a;
 
     vector<int> v11 = { 2, 2 };
     vector<int> v22 = { 3, 2 };
 
     vector<int> s = { 2 };
 
-    Tensor<int> t1(v11, s, &a);
-    Tensor<int> t2(v22, s, &a);
+    Tensor t1(v11, s, &a);
+    Tensor t2(v22, s, &a);
 
-    Tensor<int> t3 = mult(&t1, &t2);
+    Tensor t3 = mult(&t1, &t2);
     t3 = mult(&t3, &t1); // replacing variables maintains the graph
 
     t3 = mult(&t3, &t3); // using binary operators for unary operation also maintains graph

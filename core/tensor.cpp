@@ -1,6 +1,7 @@
 #include <cassert>
 #include <vector>
 #include <memory>
+#include "core/data_types.h"
 #include "core/tensor.h"
 #include "core/buffer.h"
 #include "core/operations.h"
@@ -8,12 +9,24 @@
 
 namespace deeplib {
 
-template<typename TensorDType>
-Tensor<TensorDType>::Tensor(std::vector<TensorDType> values, std::vector<int> s, Allocator<TensorDType>* a) {
+Tensor::Tensor(std::vector<int> newShape, DataType data_type, Allocator* a) {
     children = 0;
     allocator = a;
-    backend = allocator->newBuffer(new Buffer<TensorDType>(values, s, a));
-    operation = allocator->newOperation(new Constant<TensorDType>(backend));
+
+    dtype = dtype;
+
+    buffer = allocator->newBuffer(new Buffer(newShape, a));
+    operation = allocator->newOperation(new Constant(buffer)); // ?? subject to change
+}
+
+Tensor::Tensor(std::vector<int> values, std::vector<int> newShape, Allocator* a) {
+    children = 0;
+    allocator = a;
+
+    dtype = DataType::INT32;
+
+    buffer = allocator->newBuffer(new Buffer(values, newShape, a));
+    operation = allocator->newOperation(new Constant(buffer));
 }
 
 // Tensor from a binary operation.
@@ -23,8 +36,7 @@ Tensor<TensorDType>::Tensor(std::vector<TensorDType> values, std::vector<int> s,
 //
 // TODO: immediate allocation NEEDS to be changed to memory being allocated
 //       at a later time e.g. when the user calls Tensor.operate()
-template <typename TensorDType>
-Tensor<TensorDType>::Tensor(Tensor<TensorDType>* t1, Tensor<TensorDType>* t2, Operation<TensorDType>* op) {
+Tensor::Tensor(Tensor* t1, Tensor* t2, Operation* op) {
     children = 0;
 
     if (t1->getAllocator() == t2->getAllocator())
@@ -37,7 +49,7 @@ Tensor<TensorDType>::Tensor(Tensor<TensorDType>* t1, Tensor<TensorDType>* t2, Op
     }
 
     if (t1 == t2) {
-        backend = allocator->newBuffer(new Buffer<TensorDType>(t1->getShape(), t1->getAllocator()));
+        buffer = allocator->newBuffer(new Buffer(t1->getShape(), t1->getAllocator()));
 
         t1->incrChildren();
     }
@@ -53,81 +65,170 @@ Tensor<TensorDType>::Tensor(Tensor<TensorDType>* t1, Tensor<TensorDType>* t2, Op
     // of the calculation graph.
     else if (t1->getSize() >= t2->getSize()) {
         if (t1->getChildren() > 0) {
-            backend = t1->getBuffer();
-            t1->setBuffer(allocator->newBuffer(new Buffer<TensorDType>(t1->getBuffer())));
+            buffer = t1->getBuffer();
+            t1->setBuffer(allocator->newBuffer(new Buffer(t1->getBuffer())));
 
             t1->incrChildren();
         }
         // to also account for if t1.size == t2.size
         else if (t2->getChildren() > 0) {
-            backend = t2->getBuffer();
-            t2->setBuffer(allocator->newBuffer(new Buffer<TensorDType>(t2->getBuffer())));
+            buffer = t2->getBuffer();
+            t2->setBuffer(allocator->newBuffer(new Buffer(t2->getBuffer())));
 
             t2->incrChildren();
         }
         else {
-            backend = t1->getBackend();
+            buffer = t1->getBuffer();
             t1->incrChildren();
         }
     }
     else {
         if (t2->getChildren() > 0) {
-            backend = t1->getBuffer();
-            t2->setBuffer(allocator->newBuffer(new Buffer<TensorDType>(t2->getBuffer())));
+            buffer = t1->getBuffer();
+            t2->setBuffer(allocator->newBuffer(new Buffer(t2->getBuffer())));
 
             t2->incrChildren();
         }
         else {
-            backend = t2->getBackend();
+            buffer = t2->getBuffer();
             t2->incrChildren();
         }
     }
 
+    // data type checks should have been performed by now
+    dtype = t1->getDataType();
+
     operation = op;
 
-    operation->setBuffer(backend);
+    operation->setBuffer(buffer);
 }
 
-// TODO: REFERENCE COUNTS
-template <typename TensorDType>
-Tensor<TensorDType>::~Tensor() {
-    //delete placeholder;
-    //delete operation;
-}
+Tensor::~Tensor() {}
 
 // operates the tensor,
 // bringing the data in the buffer up to speed
 // at the current operation
-template <typename TensorDType>
-void Tensor<TensorDType>::operate() { operation->operate(); }
+void Tensor::operate() {
+    switch (dtype) {
+      case DataType::UINT8:
+        operation->operate<uint8_t>();
+        return;
 
-template <typename TensorDType>
-std::vector<int>& Tensor<TensorDType>::getShape() { return backend->getShape(); }
+      case DataType::UINT16:
+        operation->operate<uint16_t>();
+        return;
 
-template <typename TensorDType>
-uint64_t Tensor<TensorDType>::getSize() { return backend->getSize(); }
+      case DataType::UINT32:
+        operation->operate<uint32_t>();
+        return;
 
-template <typename TensorDType>
-uint32_t Tensor<TensorDType>::getChildren() { return children; }
+      case DataType::UINT64:
+        operation->operate<uint64_t>();
+        return;
 
-template <typename TensorDType>
-Operation<TensorDType>* Tensor<TensorDType>::getOperation() { return operation; }
+      case DataType::INT8:
+        operation->operate<int8_t>();
+        return;
 
-template <typename TensorDType>
-Allocator<TensorDType>* Tensor<TensorDType>::getAllocator() { return backend->getAllocator(); }
+      case DataType::INT16:
+        operation->operate<int16_t>();
+        return;
 
-template <typename TensorDType>
-Buffer<TensorDType>* Tensor<TensorDType>::getBuffer() { return backend; }
+      case DataType::INT32:
+        operation->operate<int32_t>();
+        return;
 
-template <typename TensorDType>
-void Tensor<TensorDType>::setBuffer(Buffer<TensorDType>* buf) {
-    backend = buf;
+      case DataType::INT64:
+        operation->operate<int64_t>();
+        return;
+        
+      case DataType::FLOAT32:
+        operation->operate<float>();
+        return;
+
+      case DataType::FLOAT64:
+        operation->operate<double>();
+        return;
+
+      case DataType::BOOL:
+        operation->operate<bool>();
+        return;
+
+      default:
+        std::cout << "ERROR: Bad data type!" << std::endl;
+        assert(false);
+    }
+}
+
+std::vector<int>& Tensor::getShape() { return buffer->getShape(); }
+
+uint64_t Tensor::getSize() { return buffer->getSize(); }
+
+DataType Tensor::getDataType() { return dtype; }
+
+uint32_t Tensor::getChildren() { return children; }
+
+Operation* Tensor::getOperation() { return operation; }
+
+Allocator* Tensor::getAllocator() { return buffer->getAllocator(); }
+
+Buffer* Tensor::getBuffer() { return buffer; }
+
+void Tensor::setBuffer(Buffer* buf) {
+    buffer = buf;
     operation->setBuffer(buf);
 }
 
-template <typename TensorDType>
-void Tensor<TensorDType>::print() {
-    backend->print();
+void Tensor::print() {
+    switch (dtype) {
+      case DataType::UINT8:
+        buffer->print<uint8_t>();
+        return;
+
+      case DataType::UINT16:
+        buffer->print<uint16_t>();
+        return;
+
+      case DataType::UINT32:
+        buffer->print<uint32_t>();
+        return;
+
+      case DataType::UINT64:
+        buffer->print<uint64_t>();
+        return;
+
+      case DataType::INT8:
+        buffer->print<int8_t>();
+        return;
+
+      case DataType::INT16:
+        buffer->print<int16_t>();
+        return;
+
+      case DataType::INT32:
+        buffer->print<int32_t>();
+        return;
+
+      case DataType::INT64:
+        buffer->print<int64_t>();
+        return;
+        
+      case DataType::FLOAT32:
+        buffer->print<float>();
+        return;
+
+      case DataType::FLOAT64:
+        buffer->print<double>();
+        return;
+
+      case DataType::BOOL:
+        buffer->print<bool>();
+        return;
+
+      default:
+        std::cout << "ERROR: Bad data type!" << std::endl;
+        assert(false);
+    }
 }
 
 } // namespace deeplib

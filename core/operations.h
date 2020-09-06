@@ -8,13 +8,9 @@ using std::string;
 
 namespace deeplib {
 
-template <typename T>
 class Buffer;
 
-template <typename T>
 class Allocator;
-
-// TODO: how closely tied should tensors and operations be?
 
 // Abstract operation graph node class.
 //
@@ -36,82 +32,83 @@ class Allocator;
 // as newly created Tensor<T> objects have a Constant as their operation. // TODO: review this last line
 //
 // This is never to be used directly.
-template <typename OpDType>
 class Operation {
-    friend class Allocator<OpDType>;
+    friend class Allocator;
 
   protected:
     string name_;
     string type_;
 
-    Operation<OpDType>* parent1_;
-    Operation<OpDType>* parent2_;
+    Operation* parent1_;
+    Operation* parent2_;
 
-    Buffer<OpDType>* buffer_;
+    Buffer* buffer_;
 
   public:
     Operation();
 
-    Operation(Operation<OpDType>* p1, Operation<OpDType>* p2);
-    Operation(Buffer<OpDType>* buf);
+    Operation(Operation* p1, Operation* p2);
+    Operation(Buffer* buf);
 
-    virtual void setBuffer(Buffer<OpDType>* buf) = 0;
-    virtual Buffer<OpDType>* getBuffer() = 0;
+    virtual void setBuffer(Buffer* buf) = 0;
+    virtual Buffer* getBuffer() = 0;
 
     virtual void derive() = 0;
-    virtual Buffer<OpDType>* operate() = 0;
+
+    template <typename OpDType>
+    Buffer* operate();
 
     string getType();
 };
 
 // operation graph node for element-wise multiplication
 // only to be used within Tensor<T> objects
-template <typename OpDType>
-class Multiplication : public Operation<OpDType> {
+class Multiplication : public Operation {
   public:
-    Multiplication(Operation<OpDType>* p1, Operation<OpDType>* p2);
+    Multiplication(Operation* p1, Operation* p2);
 
-    void setBuffer(Buffer<OpDType>* buf);
-    Buffer<OpDType>* getBuffer();
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
 
     void derive();
 
     // NOTE: broadcasting not yet supported
     //
     // element-wise multiplication - no shape change
-    Buffer<OpDType>* operate();
+    template <typename OpDType>
+    Buffer* operate();
 };
 
-template <typename OpDType>
-class Power : public Operation<OpDType> {
+class Power : public Operation {
   public:
-    Power(Operation<OpDType>* p1, Operation<OpDType>* p2);
+    Power(Operation* p1, Operation* p2);
 
-    void setBuffer(Buffer<OpDType>* buf);
-    Buffer<OpDType>* getBuffer();
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
 
     void derive();
 
     // NOTE: broadcasting not yet supported
     //
     // element-wise multiplication - no shape change
-    Buffer<OpDType>* operate();
+    template <typename OpDType>
+    Buffer* operate();
 };
 
-template <typename OpDType>
-class Constant : public Operation<OpDType> {
+class Constant : public Operation {
   public:
-    Constant(Buffer<OpDType>* buf);
+    Constant(Buffer* buf);
 
-    void setBuffer(Buffer<OpDType>* buf);
-    Buffer<OpDType>* getBuffer();
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
 
     void derive();
 
-    Buffer<OpDType>* operate();
+    template <typename OpDType>
+    Buffer* operate();
 };
 
 } // namespace deeplib
 
-#include "core/operations.cpp"
+#include "core/operations.t.h"
 #endif

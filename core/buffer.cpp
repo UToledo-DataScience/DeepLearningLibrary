@@ -1,127 +1,153 @@
 #include <cassert>
 #include <vector>
+#include <cstring>
+#include "core/buffer.h"
 #include "core/allocator.h"
 #include "core/utils.h"
 
 namespace deeplib {
 
-template <typename BDType>
-Buffer<BDType>::Buffer() {}
+Buffer::Buffer() {}
 
 // copy constructor
-template <typename BDType>
-Buffer<BDType>::Buffer(Buffer<BDType>* buf) {
+Buffer::Buffer(Buffer* buf) {
     shape = buf->getShape();
 
     total_size = buf->getSize();
-    BDType* buf_ptr = buf->getBufferData();
+    total_elements = buf->getElements();
+    void* buf_ptr = buf->getBufferData();
+
+    dtype = buf->getDataType();
 
     allocator = buf->getAllocator();
 
-    buffer_data = allocator->allocate(total_size);
-    for (uint64_t i = 0; i < total_size; i++)
-        buffer_data[i] = buf_ptr[i];
+    initialize();
+    memcpy(buffer_data, buf_ptr, total_elements);
 }
 
-template <typename BDType>
-Buffer<BDType>::Buffer(std::vector<int> s, Allocator<BDType>* a) {
+Buffer::Buffer(std::vector<int> s, Allocator* a) {
     total_size = 1;
     for (int i : s)
         total_size *= i;
 
+    total_elements = total_size;
+
     allocator = a;
+
+    dtype = DataType::FLOAT32;
 
     buffer_data = nullptr;
 
     shape = s;
 }
 
-// if the user provides values to initialize from
-template <typename BDType>
-Buffer<BDType>::Buffer(std::vector<BDType> values, std::vector<int>& s, Allocator<BDType>* a) {
+// If the user provides values from which to initialize.
+//
+// NOTE: this is not permanent. A better method will have to come about
+//       for initializing tensors from values.
+Buffer::Buffer(std::vector<int> values, std::vector<int>& s, Allocator* a) {
     total_size = 1;
     for (int i : s)
         total_size *= i;
 
+    total_elements = total_size;
+
     allocator = a;
 
-    buffer_data = allocator->allocate(total_size);
+    int* buf_d = (int*)(allocator->allocate<int>(total_elements));
+    total_size *= sizeof(int);
     for (int i = 0; i < values.size(); i++)
-        buffer_data[i] = values[i];
+        buf_d[i] = values[i];
+
+    buffer_data = (void*)buf_d;
 
     shape = s;
 }
 
 // TODO: REFERENCE COUNTS
-template <typename BDType>
-Buffer<BDType>::~Buffer() {
-    //delete placeholder;
-    //delete operation;
+Buffer::~Buffer() {}
+
+void Buffer::initialize() {
+    if (buffer_data == nullptr) {
+        switch (dtype) {
+          case DataType::UINT8:
+            buffer_data = allocator->allocate<uint8_t>(total_size);
+            total_size *= sizeof(uint8_t);
+            return;
+
+          case DataType::UINT16:
+            buffer_data = allocator->allocate<uint16_t>(total_size);
+            total_size *= sizeof(uint16_t);
+            return;
+
+          case DataType::UINT32:
+            buffer_data = allocator->allocate<uint32_t>(total_size);
+            total_size *= sizeof(uint32_t);
+            return;
+
+          case DataType::UINT64:
+            buffer_data = allocator->allocate<uint64_t>(total_size);
+            total_size *= sizeof(uint64_t);
+            return;
+
+          case DataType::INT8:
+            buffer_data = allocator->allocate<int8_t>(total_size);
+            total_size *= sizeof(int8_t);
+            return;
+
+          case DataType::INT16:
+            buffer_data = allocator->allocate<int16_t>(total_size);
+            total_size *= sizeof(int16_t);
+            return;
+
+          case DataType::INT32:
+            buffer_data = allocator->allocate<int32_t>(total_size);
+            total_size *= sizeof(int32_t);
+            return;
+
+          case DataType::INT64:
+            buffer_data = allocator->allocate<int64_t>(total_size);
+            total_size *= sizeof(int64_t);
+            return;
+
+          case DataType::FLOAT32:
+            buffer_data = allocator->allocate<float>(total_size);
+            total_size *= sizeof(float);
+            return;
+
+          case DataType::FLOAT64:
+            buffer_data = allocator->allocate<double>(total_size);
+            total_size *= sizeof(double);
+            return;
+
+          case DataType::BOOL:
+            buffer_data = allocator->allocate<bool>(total_size);
+            total_size *= sizeof(bool);
+            return;
+
+          default:
+            std::cout << "ERROR: bad data type, buffer_data not allocated!" << std::endl;
+            assert(false);
+        }
+    }
 }
 
-template <typename BDType>
-void Buffer<BDType>::initialize() {
-    if (buffer_data == nullptr)
-        buffer_data = allocator->allocate(total_size);
-}
+void* Buffer::getBufferData() { return buffer_data; }
 
-// returns the value at the given index
-template <typename BDType>
-BDType Buffer<BDType>::getIndex(uint64_t index) {
-    assert(buffer_data != nullptr);
-    assert(index < total_size);
-    return buffer_data[index];
-}
+std::vector<int>& Buffer::getShape() { return shape; }
 
-// sets the value at the given index
-template <typename BDType>
-void Buffer<BDType>::setIndex(uint64_t index, BDType value) {
-    assert(buffer_data != nullptr);
-    assert(index < total_size);
+Allocator* Buffer::getAllocator() { return allocator; }
 
-    buffer_data[index] = value;
-}
+DataType Buffer::getDataType() { return dtype; }
 
-template <typename BDType>
-BDType* Buffer<BDType>::getBufferData() { return buffer_data; }
+uint64_t Buffer::getSize() { return total_size; }
 
-template <typename BDType>
-std::vector<int>& Buffer<BDType>::getShape() { return shape; }
-
-template <typename BDType>
-Allocator<BDType>* Buffer<BDType>::getAllocator() { return allocator; }
-
-template <typename BDType>
-uint64_t Buffer<BDType>::getSize() {
+uint64_t Buffer::getElements() {
     uint64_t total = 1;
     for (int i : shape)
         total *= i;
 
     return total;
-}
-
-// naive print function
-// obviously ill-suited for higher dimensions
-// and sizes
-//
-// only deals with the last two dimensions
-template <typename BDType>
-void Buffer<BDType>::print() {
-    int r = *(shape.end()-1);
-    int c = *(shape.end()-2);
-    
-    if (shape.size() == 1) {
-        c = shape[0];
-        r = 1;
-    }
-
-    for (int i = 0; i < r; i++) {
-        std::cout << "[ ";
-        for (int j = 0; j < c; j++)
-            std::cout << buffer_data[i*c+j] << " ";
-
-        std::cout << "]" << std::endl;
-    }
 }
 
 } // namespace deeplib

@@ -3,10 +3,11 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include "core/data_types.h"
 
 // return true if vectors are element-wise equal
 // otherwise false
-bool compare(std::vector<int>& v1, std::vector<int>& v2) {
+static bool compare(std::vector<int>& v1, std::vector<int>& v2) {
     if (v1.size() != v2.size()) {
         std::cout << "Warning: mismatching vector sizes in compare()" << std::endl;
         return false;
@@ -21,7 +22,7 @@ bool compare(std::vector<int>& v1, std::vector<int>& v2) {
 }
 
 template <typename T>
-std::string vecToString(std::vector<T>& vec) {
+static std::string vecToString(std::vector<T>& vec) {
     try {
         std::stringstream ss;
         ss << "( ";
@@ -44,7 +45,7 @@ std::string vecToString(std::vector<T>& vec) {
 // final dimension must be one or both of the following:
 //   - be equal for both shapes
 //   - be 1 for at least one of the shapes
-bool broadcastable(std::vector<int>& v1, std::vector<int>& v2) {
+static bool broadcastable(std::vector<int>& v1, std::vector<int>& v2) {
     // check for violation of the above conditions
     if (v1.back() != v2.back() && v1.back() != 1 && v2.back() != 1) {
         std::cout << "Error: shapes " << vecToString(v1)

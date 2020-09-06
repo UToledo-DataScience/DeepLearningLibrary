@@ -2,13 +2,12 @@
 #define PLACEHOLDER
 #include <iostream>
 #include <cassert>
-#include "core/tensor.h"
-#include "core/operations.h"
 
 namespace deeplib {
 
-template <class T>
 class Tensor;
+class Operation;
+class Buffer;
 
 // Container for handling memory allocation and cleanup.
 // Keeps track of the operations and buffers allocated 
@@ -20,7 +19,6 @@ class Tensor;
 //
 // Should data types change or two graphs merge,
 // a new child allocator is created which handles everything onward.
-template <class AlDType>
 class Allocator {
     uint32_t total_allocations;
     uint32_t total_deallocations;
@@ -28,28 +26,27 @@ class Allocator {
     uint64_t bytes_deallocated;
     uint64_t bytes_currently_allocated;
 
-    std::vector<Operation<AlDType>*> operations;
-    std::vector<Buffer<AlDType>*> buffers;
+    std::vector<Operation*> operations;
+    std::vector<Buffer*> buffers;
 
   public:
     Allocator();
 
-    Operation<AlDType>* newOperation(Operation<AlDType>* new_op);
+    Operation* newOperation(Operation* new_op);
 
-    Buffer<AlDType>* newBuffer(Buffer<AlDType>* new_buf);
+    Buffer* newBuffer(Buffer* new_buf);
 
-    AlDType* allocate(uint64_t count);
+    template <typename AlDType>
+    void* allocate(uint64_t count);
 
-    void freeBuffer(Buffer<AlDType>* buf);
+    void freeBuffer(Buffer* buf);
 
-    AlDType* reallocate(AlDType* data, uint64_t new_count);
-
-    void uproot(Tensor<AlDType>* tensor);
+    void uproot(Tensor* tensor);
 
     void printStats();
 };
 
 } // namespace deeplib
 
-#include "core/allocator.cpp"
+#include "core/allocator.t.h"
 #endif

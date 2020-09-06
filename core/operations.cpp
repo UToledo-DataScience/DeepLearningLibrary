@@ -6,6 +6,10 @@ using std::string;
 
 namespace deeplib {
 
+//-----------------------------------\\
+// class Operation;                  \\
+//-----------------------------------\\
+
 // Abstract operation graph node class.
 //
 // Each Operation has two key functions:
@@ -26,117 +30,71 @@ namespace deeplib {
 // as newly created Tensor<T> objects have a Constant as their operation. // TODO: review this last line
 //
 // This is never to be used directly.
-template <typename OpDType>
-Operation<OpDType>::Operation() {
+Operation::Operation() {
     parent1_ = nullptr;
     parent2_ = nullptr;
     buffer_ = nullptr;
 }
 
+//-----------------------------------\\
+// class Multiplication;             \\
+//-----------------------------------\\
+
 // operation graph node for element-wise multiplication
 // only to be used within Tensor<T> objects
-template <typename OpDType>
-Multiplication<OpDType>::Multiplication(Operation<OpDType>* p1, Operation<OpDType>* p2) {
+Multiplication::Multiplication(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->type_ = "multiplication";
 }
 
-template <typename OpDType>
-void Multiplication<OpDType>::setBuffer(Buffer<OpDType>* buf) { this->buffer_ = buf; }
+void Multiplication::setBuffer(Buffer* buf) { this->buffer_ = buf; }
 
-template <typename OpDType>
-Buffer<OpDType>* Multiplication<OpDType>::getBuffer() { return this->buffer_; }
+Buffer* Multiplication::getBuffer() { return this->buffer_; }
 
-template <typename OpDType>
-void Multiplication<OpDType>::derive() {
+void Multiplication::derive() {
     //OpDType a = this->parent1_->operate() * this->parent2_->derive();
     //OpDType b = this->parent2_->operate() * this->parent1_->derive();
 
     //return a + b;
 }
 
-// NOTE: broadcasting not yet supported
-//
-// element-wise multiplication - no shape change
-template <typename OpDType>
-Buffer<OpDType>* Multiplication<OpDType>::operate() {
-    this->buffer_->initialize();
+//-----------------------------------\\
+// class Power;                      \\
+//-----------------------------------\\
 
-    Buffer<OpDType>* p1;
-    Buffer<OpDType>* p2;
-
-    p1 = this->parent1_->operate();
-    p2 = this->parent2_->operate();
-
-    for (uint64_t i = 0; i < p1->getSize(); i++)
-        this->buffer_->setIndex(i, p1->getIndex(i) * p2->getIndex(i));
-
-    return this->buffer_;
-}
-
-template <typename OpDType>
-Power<OpDType>::Power(Operation<OpDType>* p1, Operation<OpDType>* p2) {
+Power::Power(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->type_ = "power";
 }
 
-template <typename OpDType>
-void Power<OpDType>::setBuffer(Buffer<OpDType>* buf) { this->buffer_ = buf; }
+void Power::setBuffer(Buffer* buf) { this->buffer_ = buf; }
 
-template <typename OpDType>
-Buffer<OpDType>* Power<OpDType>::getBuffer() { return this->buffer_; }
+Buffer* Power::getBuffer() { return this->buffer_; }
 
-template <typename OpDType>
-void Power<OpDType>::derive() {
+void Power::derive() {
     //OpDType a = this->parent1_->operate() * this->parent2_->derive();
     //OpDType b = this->parent2_->operate() * this->parent1_->derive();
 
     //return a + b;
 }
 
-// NOTE: broadcasting not yet supported
-//
-// element-wise multiplication - no shape change
-template <typename OpDType>
-Buffer<OpDType>* Power<OpDType>::operate() {
-    this->buffer_->initialize();
+//-----------------------------------\\
+// class Constant;                   \\
+//-----------------------------------\\
 
-    Buffer<OpDType>* p1;
-    Buffer<OpDType>* p2;
-
-    p1 = this->parent1_->operate();
-    p2 = this->parent2_->operate();
-
-    // NOTE: using std::pow here is temporary and will have to change
-    //       it's only here right now for foundational purposes
-    for (uint64_t i = 0; i < p1->getSize(); i++)
-        this->buffer_->setIndex(i, std::pow(p1->getIndex(i), p2->getIndex(0)));
-
-    return this->buffer_;
-}
-
-template <typename OpDType>
-Constant<OpDType>::Constant(Buffer<OpDType>* buf) {
+Constant::Constant(Buffer* buf) {
     this->buffer_ = buf;
     this->type_ = "constant";
 }
 
-template <typename OpDType>
-void Constant<OpDType>::setBuffer(Buffer<OpDType>* buf) { this->buffer_ = buf; }
+void Constant::setBuffer(Buffer* buf) { this->buffer_ = buf; }
 
-template <typename OpDType>
-Buffer<OpDType>* Constant<OpDType>::getBuffer() { return this->buffer_; }
+Buffer* Constant::getBuffer() { return this->buffer_; }
 
-template <typename OpDType>
-void Constant<OpDType>::derive() {
+void Constant::derive() {
     return;
-}
-
-template <typename OpDType>
-Buffer<OpDType>* Constant<OpDType>::operate() {
-    return this->buffer_;
 }
 
 } // namespace deeplib

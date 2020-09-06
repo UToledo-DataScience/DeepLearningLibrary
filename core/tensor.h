@@ -9,29 +9,32 @@
 
 namespace deeplib {
 
-template <typename TensorDType>
 class Tensor {
     uint32_t children;
     std::vector<int>* shape;
 
-    // questioning the need for shared_ptr
-    Buffer<TensorDType>* backend;
-    Allocator<TensorDType>* allocator;
+    Buffer* buffer;
+    Allocator* allocator;
 
-    Operation<TensorDType>* operation;
+    DataType dtype;
 
-    Buffer<TensorDType>* getBackend() { return backend; }
+    Operation* operation;
 
     void incrChildren() { children++; }
 
   public:
+    Tensor(std::vector<int> newShape, DataType dt, Allocator* a);
+
     // fresh tensor
-    Tensor(std::vector<TensorDType> values, std::vector<int> s, Allocator<TensorDType>* a);
+    // NOTE: This will have to be changed.
+    //       Tensors initialized from a set of values will have to happen
+    //       some other way.
+    Tensor(std::vector<int> values, std::vector<int> s, Allocator* a);
 
     // tensor from binary operation
     // TODO: immediate allocation NEEDS to be changed to memory being allocated
     //       at a later time e.g. when the user calls Tensor.operate()
-    Tensor(Tensor<TensorDType>* t1, Tensor<TensorDType>* t2, Operation<TensorDType>* op);
+    Tensor(Tensor* t1, Tensor* t2, Operation* op);
 
     // TODO: REFERENCE COUNTS
     ~Tensor();
@@ -47,18 +50,19 @@ class Tensor {
 
     uint32_t getChildren();
 
-    Operation<TensorDType>* getOperation();
+    Operation* getOperation();
 
-    Allocator<TensorDType>* getAllocator();
+    DataType getDataType();
 
-    Buffer<TensorDType>* getBuffer();
+    Allocator* getAllocator();
 
-    void setBuffer(Buffer<TensorDType>* buf);
+    Buffer* getBuffer();
+
+    void setBuffer(Buffer* buf);
 
     void print();
 };
 
 } // namespace deeplib
 
-#include "core/tensor.cpp"
 #endif

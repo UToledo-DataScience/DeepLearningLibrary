@@ -1,7 +1,9 @@
 #include <iostream>
 #include <cassert>
-#include "core/tensor.h"
+#include <vector>
+#include "core/allocator.h"
 #include "core/operations.h"
+#include "core/buffer.h"
 
 namespace deeplib {
 
@@ -16,8 +18,7 @@ bool in(T* op, std::vector<T*> vec) {
     return false;
 }
 
-template<typename AlDType>
-Allocator<AlDType>::Allocator(): total_allocations(0),
+Allocator::Allocator(): total_allocations(0),
                                  total_deallocations(0),
                                  bytes_allocated(0),
                                  bytes_deallocated(0),
@@ -34,66 +35,39 @@ Allocator<AlDType>::Allocator(): total_allocations(0),
 //   X<...>* example = newX(new X<...>(...))
 //   where X is either Operation or Buffer
 
-template<typename AlDType>
-Operation<AlDType>* Allocator<AlDType>::newOperation(Operation<AlDType>* new_op) {
+Operation* Allocator::newOperation(Operation* new_op) {
     operations.push_back(new_op);
 
-    bytes_allocated += sizeof(Operation<AlDType>);
-    bytes_currently_allocated += sizeof(Operation<AlDType>);
+    bytes_allocated += sizeof(Operation);
+    bytes_currently_allocated += sizeof(Operation);
     total_allocations++;
 
     return new_op;
 }
 
-template<typename AlDType>
-Buffer<AlDType>* Allocator<AlDType>::newBuffer(Buffer<AlDType>* new_buf) {
+Buffer* Allocator::newBuffer(Buffer* new_buf) {
     buffers.push_back(new_buf);
 
-    bytes_allocated += sizeof(Buffer<AlDType>);
-    bytes_currently_allocated += sizeof(Buffer<AlDType>);
+    bytes_allocated += sizeof(Buffer);
+    bytes_currently_allocated += sizeof(Buffer);
     total_allocations++;
 
     return new_buf;
 }
 
-template<typename AlDType>
-AlDType* Allocator<AlDType>::allocate(uint64_t count) {
-    AlDType* data = (AlDType*)calloc(count, sizeof(AlDType));
-
-    uint64_t newly_allocated = count * sizeof(AlDType);
-    bytes_allocated += newly_allocated;
-    bytes_currently_allocated += newly_allocated;
-
-    return data;
-}
-
-template<typename AlDType>
-void Allocator<AlDType>::freeBuffer(Buffer<AlDType>* buf) {
+void Allocator::freeBuffer(Buffer* buf) {
     if (buf->buffer_data != nullptr) {
         free(buf->buffer_data);
         buf->buffer_data = nullptr;
 
         delete buf;
 
-        uint64_t dealloc_size = buf->total_size * sizeof(AlDType) + sizeof(Buffer<AlDType>);
+        uint64_t dealloc_size = buf->total_size + sizeof(Buffer);
 
         bytes_deallocated += dealloc_size;
         bytes_currently_allocated -= dealloc_size;
         total_deallocations++;
     }
-}
-
-template<typename AlDType>
-AlDType* Allocator<AlDType>::reallocate(AlDType* data, uint64_t new_count) {
-    free(data);
-    data = (AlDType*)calloc(new_count, sizeof(AlDType));
-
-    bytes_deallocated += bytes_currently_allocated;
-    bytes_currently_allocated = new_count * sizeof(AlDType);
-    bytes_allocated += bytes_currently_allocated;
-    total_allocations++;
-
-    return data;
 }
 
 // Cleanup function. This deallocates the given tensor
@@ -103,21 +77,19 @@ AlDType* Allocator<AlDType>::reallocate(AlDType* data, uint64_t new_count) {
 //
 // Tensors that have been uprooted cannot be used again
 // or errors will result. TODO: error handling
-template<typename AlDType>
-void Allocator<AlDType>::uproot(Tensor<AlDType>* tensor) {
+void Allocator::uproot(Tensor* tensor) {
     for (auto buf : buffers)
         freeBuffer(buf);
 
     for (auto oper : operations) {
         delete oper;
-        bytes_deallocated += sizeof(Operation<AlDType>);
-        bytes_currently_allocated -= sizeof(Operation<AlDType>);
+        bytes_deallocated += sizeof(Operation);
+        bytes_currently_allocated -= sizeof(Operation);
         total_deallocations++;
     }
 }
 
-template<typename AlDType>
-void Allocator<AlDType>::printStats() {
+void Allocator::printStats() {
     std::cout << "total_allocations: " << total_allocations << std::endl
               << "total_deallocations: " << total_deallocations << std::endl
               << "bytes_allocated: " << bytes_allocated << std::endl

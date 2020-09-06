@@ -7,34 +7,37 @@
 
 namespace deeplib {
 
-template <typename T>
 class Allocator;
 
-template <typename BDType>
 class Buffer {
-    friend class Allocator<BDType>;
+    friend class Allocator;
 
-    BDType* buffer_data;
+    void* buffer_data;
 
-    Allocator<BDType>* allocator;
+    DataType dtype;
+
+    Allocator* allocator;
 
     std::vector<int> shape;
 
-    uint64_t total_size; // this refers to the initial amount that has been allocated
-                         // it should be noted that the original shape is what has been allocated
-                         // the same allocation will be used for sizes <= the original size
-                         // should the size be >, then a new tensor is allocated
+    uint64_t total_size; // This refers to the initial number of bytes that has been allocated.
+                         // It should be noted that the original shape is what has been allocated.
+                         // The same allocation will be used for sizes <= the original size.
+                         // If the size should be >, then a new tensor is allocated.
+
+    uint64_t total_elements; // Total number of elements managed by this buffer. This number
+                             // will change as the shape of buffer_data changes.
 
   public:
     Buffer();
 
     // copy constructor
-    Buffer(Buffer<BDType>* buf);
+    Buffer(Buffer* buf);
 
-    Buffer(std::vector<int> s, Allocator<BDType>* a);
+    Buffer(std::vector<int> s, Allocator* a);
 
     // if the user provides values to initialize from
-    Buffer(std::vector<BDType> values, std::vector<int>& s, Allocator<BDType>* a);
+    Buffer(std::vector<int> values, std::vector<int>& s, Allocator* a);
 
     // TODO: REFERENCE COUNTS
     ~Buffer();
@@ -42,28 +45,37 @@ class Buffer {
     void initialize();
 
     // returns the value at the given index
+    template <typename BDType>
     BDType getIndex(uint64_t index);
 
     // sets the value at the given index
+    template <typename BDType>
     void setIndex(uint64_t index, BDType value);
 
-    BDType* getBufferData();
+    template <typename BDType>
+    BDType* getBufferDataAsTemplate();
+
+    void* getBufferData();
+
+    DataType getDataType();
 
     std::vector<int>& getShape();
 
-    Allocator<BDType>* getAllocator();
+    Allocator* getAllocator();
 
     uint64_t getSize();
+    uint64_t getElements();
 
     // naive print function
     // obviously ill-suited for higher dimensions
     // and sizes
     //
     // only deals with the last two dimensions
+    template <typename BDType>
     void print();
 };
 
 } // namespace deeplib
 
-#include "core/buffer.cpp"
+#include "core/buffer.t.h"
 #endif // #ifndef TENSOR_BACKEND

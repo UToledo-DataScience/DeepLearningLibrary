@@ -8,10 +8,10 @@
 namespace deeplib {
 
 Allocator::Allocator(): total_allocations_(0),
-                                 total_deallocations_(0),
-                                 bytes_allocated_(0),
-                                 bytes_deallocated_(0),
-                                 bytes_currently_allocated_(0)
+                        total_deallocations_(0),
+                        bytes_allocated_(0),
+                        bytes_deallocated_(0),
+                        bytes_currently_allocated_(0)
     {}
 
 Allocator::~Allocator() {

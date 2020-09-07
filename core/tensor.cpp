@@ -10,37 +10,32 @@
 namespace deeplib {
 
 Tensor::Tensor(std::vector<int> newShape, DataType data_type, Allocator* a) {
-    children = 0;
-    allocator = a;
+    children_ = 0;
+    allocator_ = a;
 
-    dtype = dtype;
+    dtype_ = data_type;
 
-    buffer = allocator->newBuffer(new Buffer(newShape, a));
-    operation = allocator->newOperation(new Constant(buffer)); // ?? subject to change
+    buffer_ = allocator_->newBuffer(new Buffer(newShape, a));
+    operation_ = allocator_->newOperation(new Constant(buffer_)); // ?? subject to change
 }
 
 Tensor::Tensor(std::vector<int> values, std::vector<int> newShape, Allocator* a) {
-    children = 0;
-    allocator = a;
+    children_ = 0;
+    allocator_ = a;
 
-    dtype = DataType::INT32;
+    dtype_ = DataType::INT32;
 
-    buffer = allocator->newBuffer(new Buffer(values, newShape, a));
-    operation = allocator->newOperation(new Constant(buffer));
+    buffer_ = allocator_->newBuffer(new Buffer(values, newShape, a));
+    operation_ = allocator_->newOperation(new Constant(buffer_));
 }
 
-// Tensor from a binary operation.
-//
-// NOTE: Since the tensor resulting from this operation will
-//       inherit the allocator of its parents, this objects
-//
-// TODO: immediate allocation NEEDS to be changed to memory being allocated
-//       at a later time e.g. when the user calls Tensor.operate()
 Tensor::Tensor(Tensor* t1, Tensor* t2, Operation* op) {
-    children = 0;
+    children_ = 0;
 
+    // NOTE: Since the tensor resulting from this operation will
+    //       inherit the allocator of its parents, this objects
     if (t1->getAllocator() == t2->getAllocator())
-        allocator = t1->getAllocator();
+        allocator_ = t1->getAllocator();
     else {
         std::cout << "Error: allocator mismatch in tensor instantiation. "
                   << "This should not be happening" << std::endl;
@@ -49,7 +44,7 @@ Tensor::Tensor(Tensor* t1, Tensor* t2, Operation* op) {
     }
 
     if (t1 == t2) {
-        buffer = allocator->newBuffer(new Buffer(t1->getShape(), t1->getAllocator()));
+        buffer_ = allocator_->newBuffer(new Buffer(t1->getShape(), t1->getAllocator()));
 
         t1->incrChildren();
     }
@@ -65,116 +60,131 @@ Tensor::Tensor(Tensor* t1, Tensor* t2, Operation* op) {
     // of the calculation graph.
     else if (t1->getSize() >= t2->getSize()) {
         if (t1->getChildren() > 0) {
-            buffer = t1->getBuffer();
-            t1->setBuffer(allocator->newBuffer(new Buffer(t1->getBuffer())));
+            buffer_ = t1->getBuffer();
+            t1->setBuffer(allocator_->newBuffer(new Buffer(t1->getBuffer())));
 
             t1->incrChildren();
         }
         // to also account for if t1.size == t2.size
         else if (t2->getChildren() > 0) {
-            buffer = t2->getBuffer();
-            t2->setBuffer(allocator->newBuffer(new Buffer(t2->getBuffer())));
+            buffer_ = t2->getBuffer();
+            t2->setBuffer(allocator_->newBuffer(new Buffer(t2->getBuffer())));
 
             t2->incrChildren();
         }
         else {
-            buffer = t1->getBuffer();
+            buffer_ = t1->getBuffer();
             t1->incrChildren();
         }
     }
     else {
         if (t2->getChildren() > 0) {
-            buffer = t1->getBuffer();
-            t2->setBuffer(allocator->newBuffer(new Buffer(t2->getBuffer())));
+            buffer_ = t1->getBuffer();
+            t2->setBuffer(allocator_->newBuffer(new Buffer(t2->getBuffer())));
 
             t2->incrChildren();
         }
         else {
-            buffer = t2->getBuffer();
+            buffer_ = t2->getBuffer();
             t2->incrChildren();
         }
     }
 
     // data type checks should have been performed by now
-    dtype = t1->getDataType();
+    dtype_ = t1->getDataType();
 
-    operation = op;
+    operation_ = op;
 
-    operation->setBuffer(buffer);
+    operation_->setBuffer(buffer_);
 }
 
 Tensor::~Tensor() {}
 
-// operates the tensor,
-// bringing the data in the buffer up to speed
-// at the current operation
 void Tensor::operate() {
-    operation->operate();
+    operation_->operate();
 }
 
-std::vector<int>& Tensor::getShape() { return buffer->getShape(); }
+void Tensor::uproot() {
+    allocator_->uprootOperation(operation_);
+}
 
-uint64_t Tensor::getSize() { return buffer->getSize(); }
+std::vector<int>& Tensor::getShape() {
+    return buffer_->getShape();
+}
 
-DataType Tensor::getDataType() { return dtype; }
+uint64_t Tensor::getSize() {
+    return buffer_->getSize();
+}
 
-uint32_t Tensor::getChildren() { return children; }
+DataType Tensor::getDataType() {
+    return dtype_;
+}
 
-Operation* Tensor::getOperation() { return operation; }
+uint32_t Tensor::getChildren() {
+    return children_;
+}
 
-Allocator* Tensor::getAllocator() { return buffer->getAllocator(); }
+Operation* Tensor::getOperation() {
+    return operation_;
+}
 
-Buffer* Tensor::getBuffer() { return buffer; }
+Allocator* Tensor::getAllocator() {
+    return buffer_->getAllocator();
+}
+
+Buffer* Tensor::getBuffer() {
+    return buffer_;
+}
 
 void Tensor::setBuffer(Buffer* buf) {
-    buffer = buf;
-    operation->setBuffer(buf);
+    buffer_ = buf;
+    operation_->setBuffer(buf);
 }
 
 void Tensor::print() {
-    switch (dtype) {
+    switch (dtype_) {
       case DataType::UINT8:
-        buffer->print<uint8_t>();
+        buffer_->print<uint8_t>();
         return;
 
       case DataType::UINT16:
-        buffer->print<uint16_t>();
+        buffer_->print<uint16_t>();
         return;
 
       case DataType::UINT32:
-        buffer->print<uint32_t>();
+        buffer_->print<uint32_t>();
         return;
 
       case DataType::UINT64:
-        buffer->print<uint64_t>();
+        buffer_->print<uint64_t>();
         return;
 
       case DataType::INT8:
-        buffer->print<int8_t>();
+        buffer_->print<int8_t>();
         return;
 
       case DataType::INT16:
-        buffer->print<int16_t>();
+        buffer_->print<int16_t>();
         return;
 
       case DataType::INT32:
-        buffer->print<int32_t>();
+        buffer_->print<int32_t>();
         return;
 
       case DataType::INT64:
-        buffer->print<int64_t>();
+        buffer_->print<int64_t>();
         return;
         
       case DataType::FLOAT32:
-        buffer->print<float>();
+        buffer_->print<float>();
         return;
 
       case DataType::FLOAT64:
-        buffer->print<double>();
+        buffer_->print<double>();
         return;
 
       case DataType::BOOL:
-        buffer->print<bool>();
+        buffer_->print<bool>();
         return;
 
       default:

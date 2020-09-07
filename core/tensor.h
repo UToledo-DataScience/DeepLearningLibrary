@@ -10,39 +10,46 @@
 namespace deeplib {
 
 class Tensor {
-    uint32_t children;
-    std::vector<int>* shape;
+    uint32_t children_;
+    std::vector<int>* shape_;
 
-    Buffer* buffer;
-    Allocator* allocator;
+    Buffer* buffer_;
+    Allocator* allocator_;
 
-    DataType dtype;
+    DataType dtype_;
 
-    Operation* operation;
+    Operation* operation_;
 
-    void incrChildren() { children++; }
+    void incrChildren() { children_++; }
 
   public:
     Tensor(std::vector<int> newShape, DataType dt, Allocator* a);
 
-    // fresh tensor
+    // Fresh tensor initialized using a 1D set of values.
     // NOTE: This will have to be changed.
     //       Tensors initialized from a set of values will have to happen
-    //       some other way.
+    //       some other way. Eigen tensors/matrices?
     Tensor(std::vector<int> values, std::vector<int> s, Allocator* a);
 
-    // tensor from binary operation
-    // TODO: immediate allocation NEEDS to be changed to memory being allocated
-    //       at a later time e.g. when the user calls Tensor.operate()
+    // Tensor constructed from a binary operation. The operation given
+    // is what this tensors operation will be.
     Tensor(Tensor* t1, Tensor* t2, Operation* op);
 
-    // TODO: REFERENCE COUNTS
     ~Tensor();
 
-    // operates the tensor,
-    // bringing the data in the buffer up to speed
-    // at the current operation
+    // Operates the tensor, bringing the data in the buffer up to speed
+    // at the current operation. 
+    // NOTE: This overwrites buffers.
+    // TODO: How directly (or indirectly) will the user interact with this?
     void operate();
+
+    // Deallocate this tensor and ALL of it's ancestors.
+    // Once this is called, all affected tensors will be unusable.
+    //
+    // TODO: What to do about orphaned operations?
+    void uproot();
+
+    // Getters and setters.
 
     std::vector<int>& getShape();
 

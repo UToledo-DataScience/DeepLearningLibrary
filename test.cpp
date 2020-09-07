@@ -46,7 +46,7 @@ int main() {
          << endl;
     t3.print();
 
-    a.uproot(&t3);
+    t3.uproot();
 
     a.printStats();
 }

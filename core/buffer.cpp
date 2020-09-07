@@ -2,37 +2,35 @@
 #include <vector>
 #include <cstring>
 #include "core/buffer.h"
-#include "core/allocator.h"
 #include "core/utils.h"
 
 namespace deeplib {
 
 Buffer::Buffer() {}
 
-// copy constructor
 Buffer::Buffer(Buffer* buf) {
-    buffer_data = nullptr;
+    buffer_data_ = nullptr;
 
-    shape = buf->getShape();
+    shape_ = buf->getShape();
 
-    total_size = buf->getSize();
-    total_elements = buf->getElements();
-    void* buf_ptr = buf->getBufferData();
+    total_size_ = buf->getSize();
+    total_elements_ = buf->getElements();
+    void* buf_ptr = buf->buffer_data_;
 
-    dtype = buf->getDataType();
+    dtype_ = buf->getDataType();
 
-    allocator = buf->getAllocator();
+    allocator_ = buf->getAllocator();
 
     initialize();
-    memcpy(buffer_data, buf_ptr, total_size);
+    memcpy(buffer_data_, buf_ptr, total_size_);
 }
 
 Buffer::Buffer(std::vector<int> s, Allocator* a) {
-    total_size = 1;
+    total_size_ = 1;
     for (int i : s)
-        total_size *= i;
+        total_size_ *= i;
 
-    total_elements = total_size;
+    total_elements_ = total_size_;
 
     // NOTE: Total_size at this point in the function
     //       does not accurately represent the total amount
@@ -40,101 +38,95 @@ Buffer::Buffer(std::vector<int> s, Allocator* a) {
     //
     //       This will need changed.
 
-    allocator = a;
+    allocator_ = a;
 
-    dtype = DataType::FLOAT32;
+    dtype_ = DataType::FLOAT32;
 
-    buffer_data = nullptr;
+    buffer_data_ = nullptr;
 
-    shape = s;
+    shape_ = s;
 }
 
-// If the user provides values from which to initialize.
-//
-// NOTE: this is not permanent. A better method will have to come about
-//       for initializing tensors from values.
 Buffer::Buffer(std::vector<int> values, std::vector<int>& s, Allocator* a) {
-    total_size = 1;
+    total_size_ = 1;
     for (int i : s)
-        total_size *= i;
+        total_size_ *= i;
 
-    total_elements = total_size;
+    total_elements_ = total_size_;
 
-    allocator = a;
+    allocator_ = a;
 
-    dtype = DataType::INT32;
+    dtype_ = DataType::INT32;
 
-    int* buf_d = (int*)(allocator->allocate<int>(total_elements));
-    total_size = total_elements *  sizeof(int);
+    int* buf_d = (int*)(allocator_->allocate<int>(total_elements_));
+    total_size_ = total_elements_ *  sizeof(int);
 
-    //#pragma omp parallel for
     for (int i = 0; i < values.size(); i++)
         buf_d[i] = values[i];
 
-    buffer_data = (void*)buf_d;
+    buffer_data_ = (void*)buf_d;
 
-    shape = s;
+    shape_ = s;
 }
 
-// TODO: REFERENCE COUNTS
 Buffer::~Buffer() {}
 
 void Buffer::initialize() {
-    if (buffer_data == nullptr) {
-        switch (dtype) {
+    if (buffer_data_ == nullptr) {
+        switch (dtype_) {
           case DataType::UINT8:
-            buffer_data = allocator->allocate<uint8_t>(total_elements);
-            total_size = total_elements *  sizeof(uint8_t);
+            buffer_data_ = allocator_->allocate<uint8_t>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(uint8_t);
             return;
 
           case DataType::UINT16:
-            buffer_data = allocator->allocate<uint16_t>(total_elements);
-            total_size = total_elements *  sizeof(uint16_t);
+            buffer_data_ = allocator_->allocate<uint16_t>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(uint16_t);
             return;
 
           case DataType::UINT32:
-            buffer_data = allocator->allocate<uint32_t>(total_elements);
-            total_size = total_elements *  sizeof(uint32_t);
+            buffer_data_ = allocator_->allocate<uint32_t>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(uint32_t);
             return;
 
           case DataType::UINT64:
-            buffer_data = allocator->allocate<uint64_t>(total_elements);
-            total_size = total_elements *  sizeof(uint64_t);
+            buffer_data_ = allocator_->allocate<uint64_t>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(uint64_t);
             return;
 
           case DataType::INT8:
-            buffer_data = allocator->allocate<int8_t>(total_elements);
-            total_size = total_elements *  sizeof(int8_t);
+            buffer_data_ = allocator_->allocate<int8_t>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(int8_t);
             return;
 
           case DataType::INT16:
-            buffer_data = allocator->allocate<int16_t>(total_elements);
-            total_size = total_elements *  sizeof(int16_t);
+            buffer_data_ = allocator_->allocate<int16_t>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(int16_t);
             return;
 
           case DataType::INT32:
-            buffer_data = allocator->allocate<int32_t>(total_elements);
-            total_size = total_elements *  sizeof(int32_t);
+            buffer_data_ = allocator_->allocate<int32_t>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(int32_t);
             return;
 
           case DataType::INT64:
-            buffer_data = allocator->allocate<int64_t>(total_elements);
-            total_size = total_elements *  sizeof(int64_t);
+            buffer_data_ = allocator_->allocate<int64_t>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(int64_t);
             return;
 
           case DataType::FLOAT32:
-            buffer_data = allocator->allocate<float>(total_elements);
-            total_size = total_elements *  sizeof(float);
+            buffer_data_ = allocator_->allocate<float>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(float);
             return;
 
           case DataType::FLOAT64:
-            buffer_data = allocator->allocate<double>(total_elements);
-            total_size = total_elements *  sizeof(double);
+            buffer_data_ = allocator_->allocate<double>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(double);
             return;
 
           case DataType::BOOL:
-            buffer_data = allocator->allocate<bool>(total_elements);
-            total_size = total_elements *  sizeof(bool);
+            buffer_data_ = allocator_->allocate<bool>(total_elements_);
+            total_size_ = total_elements_ *  sizeof(bool);
             return;
 
           default:
@@ -144,19 +136,17 @@ void Buffer::initialize() {
     }
 }
 
-void* Buffer::getBufferData() { return buffer_data; }
+std::vector<int>& Buffer::getShape() { return shape_; }
 
-std::vector<int>& Buffer::getShape() { return shape; }
+Allocator* Buffer::getAllocator() { return allocator_; }
 
-Allocator* Buffer::getAllocator() { return allocator; }
+DataType Buffer::getDataType() { return dtype_; }
 
-DataType Buffer::getDataType() { return dtype; }
-
-uint64_t Buffer::getSize() { return total_size; }
+uint64_t Buffer::getSize() { return total_size_; }
 
 uint64_t Buffer::getElements() {
     uint64_t total = 1;
-    for (int i : shape)
+    for (int i : shape_)
         total *= i;
 
     return total;

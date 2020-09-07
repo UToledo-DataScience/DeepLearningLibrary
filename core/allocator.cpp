@@ -3,98 +3,121 @@
 #include <vector>
 #include "core/allocator.h"
 #include "core/operations.h"
-#include "core/buffer.h"
+#include "core/utils.h"
 
 namespace deeplib {
 
-// move this
-template <typename T>
-bool in(T* op, std::vector<T*> vec) {
-    for (auto i : vec) {
-        if (op == i)
-            return true;
-    }
-
-    return false;
-}
-
-Allocator::Allocator(): total_allocations(0),
-                                 total_deallocations(0),
-                                 bytes_allocated(0),
-                                 bytes_deallocated(0),
-                                 bytes_currently_allocated(0)
+Allocator::Allocator(): total_allocations_(0),
+                                 total_deallocations_(0),
+                                 bytes_allocated_(0),
+                                 bytes_deallocated_(0),
+                                 bytes_currently_allocated_(0)
     {}
 
-// The following two functions are wrapper functions
-// for newly instantiated operations and buffers
-// used to keep track of what's allocated by this allocator.
-//
-// i.e. new Operation/Buffer shouldn't be used without these
-//
-// How to use:
-//   X<...>* example = newX(new X<...>(...))
-//   where X is either Operation or Buffer
+Allocator::~Allocator() {
+    uproot();
+}
 
 Operation* Allocator::newOperation(Operation* new_op) {
-    operations.push_back(new_op);
+    operations_.push_back(new_op);
 
-    bytes_allocated += sizeof(Operation);
-    bytes_currently_allocated += sizeof(Operation);
-    total_allocations++;
+    bytes_allocated_ += sizeof(Operation);
+    bytes_currently_allocated_ += sizeof(Operation);
+    total_allocations_++;
 
     return new_op;
 }
 
 Buffer* Allocator::newBuffer(Buffer* new_buf) {
-    buffers.push_back(new_buf);
+    buffers_.push_back(new_buf);
 
-    bytes_allocated += sizeof(Buffer);
-    bytes_currently_allocated += sizeof(Buffer);
-    total_allocations++;
+    bytes_allocated_ += sizeof(Buffer);
+    bytes_currently_allocated_ += sizeof(Buffer);
+    total_allocations_++;
 
     return new_buf;
 }
 
 void Allocator::freeBuffer(Buffer* buf) {
-    if (buf->buffer_data != nullptr) {
-        free(buf->buffer_data);
-        buf->buffer_data = nullptr;
+    if (buf->buffer_data_ != nullptr) {
+        free(buf->buffer_data_);
+        buf->buffer_data_ = nullptr;
 
         delete buf;
 
-        uint64_t dealloc_size = buf->total_size + sizeof(Buffer);
+        uint64_t dealloc_size = buf->total_size_ + sizeof(Buffer);
 
-        bytes_deallocated += dealloc_size;
-        bytes_currently_allocated -= dealloc_size;
-        total_deallocations++;
+        bytes_deallocated_ += dealloc_size;
+        bytes_currently_allocated_ -= dealloc_size;
+        total_deallocations_++;
     }
 }
 
-// Cleanup function. This deallocates the given tensor
-// as well as ALL of its ancestors.
-// This includes freeing the Operation and Buffer pointers
-// associated with the tensor in the graph.
-//
-// Tensors that have been uprooted cannot be used again
-// or errors will result. TODO: error handling
-void Allocator::uproot(Tensor* tensor) {
-    for (auto buf : buffers)
+void Allocator::uproot() {
+    for (auto buf : buffers_)
         freeBuffer(buf);
 
-    for (auto oper : operations) {
+    for (auto oper : operations_) {
         delete oper;
-        bytes_deallocated += sizeof(Operation);
-        bytes_currently_allocated -= sizeof(Operation);
-        total_deallocations++;
+        bytes_deallocated_ += sizeof(Operation);
+        bytes_currently_allocated_ -= sizeof(Operation);
+        total_deallocations_++;
     }
+
+    buffers_.clear();
+    operations_.clear();
+}
+
+void Allocator::uprootOperation(Operation* op, int& index) {
+    Operation* p1 = op->parent1_;
+    Operation* p2 = op->parent2_;
+
+    // The actual deallocation of the operation
+    // and it's related buffer.
+
+    int i = in<Buffer>(op->buffer_, buffers_);
+    if (i > -1) {
+        freeBuffer(op->buffer_);
+        buffers_.erase(buffers_.begin() + i);
+    }
+
+    delete op;
+    operations_.erase(operations_.begin() + index);
+    bytes_deallocated_ += sizeof(Operation);
+    bytes_currently_allocated_ -= sizeof(Operation);
+    total_deallocations_++;
+
+    // Recursively travel up the tree and deallocate.
+
+    index = in<Operation>(p1, operations_);
+    if (p1 != nullptr && index > -1)
+        uprootOperation(p1, index);
+
+    index = in<Operation>(p2, operations_);
+    if (p2 != nullptr && index > -1)
+        uprootOperation(p2, index);
+}
+
+void Allocator::uprootOperation(Operation* op) {
+    Buffer* buf = op->buffer_;
+
+    int i = in<Buffer>(buf, buffers_);
+    if (i > -1) {
+        freeBuffer(buf);
+        buffers_.erase(buffers_.begin() + i);
+    }
+
+    i = in<Operation>(op, operations_);
+    if (i > -1)
+        uprootOperation(op, i);
 }
 
 void Allocator::printStats() {
-    std::cout << "total_allocations: " << total_allocations << std::endl
-              << "total_deallocations: " << total_deallocations << std::endl
-              << "bytes_allocated: " << bytes_allocated << std::endl
-              << "bytes_deallocated: " << bytes_deallocated << std::endl
-              << "bytes_currently_allocated: " << bytes_currently_allocated << std::endl;
+    std::cout << "total_allocations_: " << total_allocations_ << std::endl
+              << "total_deallocations_: " << total_deallocations_ << std::endl
+              << "bytes_allocated_: " << bytes_allocated_ << std::endl
+              << "bytes_deallocated_: " << bytes_deallocated_ << std::endl
+              << "bytes_currently_allocated_: " << bytes_currently_allocated_ << std::endl;
 }
 
 } // namespace deeplib

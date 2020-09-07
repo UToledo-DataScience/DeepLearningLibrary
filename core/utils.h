@@ -81,4 +81,16 @@ static bool broadcastable(std::vector<int>& v1, std::vector<int>& v2) {
     return true;
 }
 
+// returns the index at which the element was found
+// returns -1 if the element is not in the vector
+template <typename T>
+static int in(T* element, std::vector<T*> list) {
+    for (int i = 0; i < list.size(); i++) {
+        if (element == list[i])
+            return i;
+    }
+
+    return -1;
+}
+
 #endif

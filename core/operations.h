@@ -9,7 +9,6 @@ using std::string;
 namespace deeplib {
 
 class Buffer;
-
 class Allocator;
 
 // Abstract operation graph node class.
@@ -55,7 +54,6 @@ class Operation {
 
     virtual void derive() = 0;
 
-    //template <typename OpDType>
     virtual Buffer* operate() = 0;
 
     string getType();

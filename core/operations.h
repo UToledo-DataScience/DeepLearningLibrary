@@ -55,8 +55,8 @@ class Operation {
 
     virtual void derive() = 0;
 
-    template <typename OpDType>
-    Buffer* operate();
+    //template <typename OpDType>
+    virtual Buffer* operate() = 0;
 
     string getType();
 };
@@ -75,8 +75,11 @@ class Multiplication : public Operation {
     // NOTE: broadcasting not yet supported
     //
     // element-wise multiplication - no shape change
-    template <typename OpDType>
+    //template <typename OpDType>
     Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
 };
 
 class Power : public Operation {
@@ -91,8 +94,10 @@ class Power : public Operation {
     // NOTE: broadcasting not yet supported
     //
     // element-wise multiplication - no shape change
-    template <typename OpDType>
     Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
 };
 
 class Constant : public Operation {
@@ -104,7 +109,6 @@ class Constant : public Operation {
 
     void derive();
 
-    template <typename OpDType>
     Buffer* operate();
 };
 

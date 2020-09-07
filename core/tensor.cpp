@@ -109,55 +109,7 @@ Tensor::~Tensor() {}
 // bringing the data in the buffer up to speed
 // at the current operation
 void Tensor::operate() {
-    switch (dtype) {
-      case DataType::UINT8:
-        operation->operate<uint8_t>();
-        return;
-
-      case DataType::UINT16:
-        operation->operate<uint16_t>();
-        return;
-
-      case DataType::UINT32:
-        operation->operate<uint32_t>();
-        return;
-
-      case DataType::UINT64:
-        operation->operate<uint64_t>();
-        return;
-
-      case DataType::INT8:
-        operation->operate<int8_t>();
-        return;
-
-      case DataType::INT16:
-        operation->operate<int16_t>();
-        return;
-
-      case DataType::INT32:
-        operation->operate<int32_t>();
-        return;
-
-      case DataType::INT64:
-        operation->operate<int64_t>();
-        return;
-        
-      case DataType::FLOAT32:
-        operation->operate<float>();
-        return;
-
-      case DataType::FLOAT64:
-        operation->operate<double>();
-        return;
-
-      case DataType::BOOL:
-        operation->operate<bool>();
-        return;
-
-      default:
-        std::cout << "ERROR: Bad data type!" << std::endl;
-        assert(false);
-    }
+    operation->operate();
 }
 
 std::vector<int>& Tensor::getShape() { return buffer->getShape(); }

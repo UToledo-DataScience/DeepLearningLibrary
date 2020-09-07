@@ -59,6 +59,72 @@ void Multiplication::derive() {
     //return a + b;
 }
 
+// NOTE: broadcasting not yet supported
+//
+// Single-threaded approach.
+//
+// Element-wise multiplication - no shape change.
+Buffer* Multiplication::operate() {
+    this->buffer_->initialize();
+
+    Buffer* b1 = this->parent1_->operate();
+    Buffer* b2 = this->parent2_->operate();
+
+    DataType dtype = b1->getDataType();
+
+    // there HAS to be a better way of dealing with data types
+    // please let me know
+    switch (dtype) {
+      case DataType::UINT8:
+        this->compute<uint8_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::UINT16:
+        this->compute<uint16_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::UINT32:
+        this->compute<uint32_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::UINT64:
+        this->compute<uint64_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::INT8:
+        this->compute<int8_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::INT16:
+        this->compute<int16_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::INT32:
+        this->compute<int32_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::INT64:
+        this->compute<int64_t>(b1, b2);
+        return this->buffer_;
+            
+      case DataType::FLOAT32:
+        this->compute<float>(b1, b2);
+        return this->buffer_;
+
+      case DataType::FLOAT64:
+        this->compute<double>(b1, b2);
+        return this->buffer_;
+
+      case DataType::BOOL:
+        this->compute<bool>(b1, b2);
+        return this->buffer_;
+
+      default:
+        std::cout << "ERROR: bad data type!" << std::endl;
+        assert(false);
+    }
+}
+
 //-----------------------------------\\
 // class Power;                      \\
 //-----------------------------------\\
@@ -80,6 +146,68 @@ void Power::derive() {
     //return a + b;
 }
 
+// NOTE: broadcasting not yet supported
+//
+// element-wise multiplication - no shape change
+Buffer* Power::operate() {
+    this->buffer_->initialize();
+
+    Buffer* b1 = this->parent1_->operate();
+    Buffer* b2 = this->parent2_->operate();
+
+    DataType dtype = b1->getDataType();
+
+    switch (dtype) {
+      case DataType::UINT8:
+        this->compute<uint8_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::UINT16:
+        this->compute<uint16_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::UINT32:
+        this->compute<uint32_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::UINT64:
+        this->compute<uint64_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::INT8:
+        this->compute<int8_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::INT16:
+        this->compute<int16_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::INT32:
+        this->compute<int32_t>(b1, b2);
+        return this->buffer_;
+
+      case DataType::INT64:
+        this->compute<int64_t>(b1, b2);
+        return this->buffer_;
+            
+      case DataType::FLOAT32:
+        this->compute<float>(b1, b2);
+        return this->buffer_;
+
+      case DataType::FLOAT64:
+        this->compute<double>(b1, b2);
+        return this->buffer_;
+
+      case DataType::BOOL:
+        this->compute<bool>(b1, b2);
+        return this->buffer_;
+
+      default:
+        std::cout << "ERROR: bad data type!" << std::endl;
+        assert(false);
+    }
+}
+
 //-----------------------------------\\
 // class Constant;                   \\
 //-----------------------------------\\
@@ -95,6 +223,10 @@ Buffer* Constant::getBuffer() { return this->buffer_; }
 
 void Constant::derive() {
     return;
+}
+
+Buffer* Constant::operate() {
+    return this->buffer_;
 }
 
 } // namespace deeplib

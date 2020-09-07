@@ -3,7 +3,7 @@
 #include <cassert>
 #include <vector>
 #include "core/allocator.h"
-#include "core/utils.h"
+#include "core/data_types.h"
 
 namespace deeplib {
 

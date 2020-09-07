@@ -30,7 +30,7 @@ void Buffer::print() {
 template <typename BDType>
 BDType Buffer::getIndex(uint64_t index) {
     assert(buffer_data != nullptr);
-    assert(index < total_size);
+    assert(index < total_elements);
     return ((BDType*)buffer_data)[index];
 }
 

@@ -5,7 +5,7 @@
 #include <memory>
 #include "core/buffer.h"
 #include "core/operations.h"
-#include "core/utils.h"
+#include "core/data_types.h"
 
 namespace deeplib {
 

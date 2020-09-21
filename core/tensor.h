@@ -33,7 +33,13 @@ class Tensor {
 
     // Tensor constructed from a binary operation. The operation given
     // is what this tensors operation will be.
-    Tensor(Tensor* t1, Tensor* t2, Operation* op);
+    Tensor(Tensor& t1, Tensor& t2, Operation* op);
+
+    // Tensor constructed from a unary operation.
+    Tensor(Tensor& t, Operation* op);
+
+    // Constructor for implicit casts from operations.
+    Tensor(Tensor& t, Operation* op, DataType new_dtype);
 
     ~Tensor();
 

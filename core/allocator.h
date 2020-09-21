@@ -10,8 +10,7 @@ class Operation;
 class Buffer;
 
 // Container for handling memory allocation and cleanup.
-// Keeps track of the operations and buffers allocated 
-// within a single graph and single data type.
+// Keeps track of the operations and buffers allocated.
 //
 // Once this object is destroyed, it deallocates everything
 // under it's watch. Thus all tensors created using this

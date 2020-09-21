@@ -42,18 +42,11 @@ static std::string vecToString(std::vector<T>& vec) {
 // checks for broadcastability between the two vectors
 // true for yes, false for no
 //
-// final dimension must be one or both of the following:
+// Each dimension must be one or both of the following:
 //   - be equal for both shapes
 //   - be 1 for at least one of the shapes
 static bool broadcastable(std::vector<int>& v1, std::vector<int>& v2) {
     // check for violation of the above conditions
-    if (v1.back() != v2.back() && v1.back() != 1 && v2.back() != 1) {
-        std::cout << "Error: shapes " << vecToString(v1)
-                  << " and " << vecToString(v2) << " are incompatible broadcast shapes." << std::endl;
-
-        return false;
-    }
-
     int diff = std::max(v1.size(), v2.size()) - std::min(v1.size(), v2.size());
     std::vector<int>* bigger_vec;
     std::vector<int>* smaller_vec;
@@ -69,8 +62,9 @@ static bool broadcastable(std::vector<int>& v1, std::vector<int>& v2) {
         smaller_vec = &v1;
     }
 
-    for (int i = bigger_vec->size()-2; i-diff > -1; i--) {
-        if (bigger_vec->at(i) != smaller_vec->at(i-diff)) {
+    for (int i = bigger_vec->size()-1; i-diff > -1; i--) {
+        if (bigger_vec->at(i) != smaller_vec->at(i-diff) && 
+            bigger_vec->at(i) != 1 && smaller_vec->at(i-diff) != 1) {
             std::cout << "Error: shapes " << vecToString(v1)
                       << " and " << vecToString(v2) << " are incompatible broadcast shapes." << std::endl;
 
@@ -84,7 +78,7 @@ static bool broadcastable(std::vector<int>& v1, std::vector<int>& v2) {
 // returns the index at which the element was found
 // returns -1 if the element is not in the vector
 template <typename T>
-static int in(T* element, std::vector<T*> list) {
+static int in(T* element, std::vector<T*>& list) {
     for (int i = 0; i < list.size(); i++) {
         if (element == list[i])
             return i;

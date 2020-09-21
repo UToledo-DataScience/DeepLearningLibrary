@@ -16,7 +16,6 @@ void Buffer::print() {
     }
 
     BDType* data = (BDType*)buffer_data_;
-
     for (int i = 0; i < r; i++) {
         std::cout << "[ ";
         for (int j = 0; j < c; j++)
@@ -47,7 +46,7 @@ void Buffer::setIndex(uint64_t index, BDType value) {
 
 template <typename BDType>
 BDType* Buffer::getBufferDataAsTemplate() {
-    return static_cast<BDType*>(buffer_data_);
+    return (BDType*)buffer_data_;
 }
 
 } // namespace deeplib

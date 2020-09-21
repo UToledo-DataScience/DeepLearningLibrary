@@ -59,8 +59,41 @@ class Operation {
     string getType();
 };
 
-// operation graph node for element-wise multiplication
-// only to be used within Tensor<T> objects
+class Addition : public Operation {
+  public:
+    Addition(Operation* p1, Operation* p2);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    // NOTE: broadcasting not yet supported
+    //
+    // element-wise multiplication - no shape change
+    //template <typename OpDType>
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
+class Subtraction : public Operation {
+  public:
+    Subtraction(Operation* p1, Operation* p2);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
+
 class Multiplication : public Operation {
   public:
     Multiplication(Operation* p1, Operation* p2);
@@ -80,6 +113,21 @@ class Multiplication : public Operation {
     void compute(Buffer* b1, Buffer* b2);
 };
 
+class Division : public Operation {
+  public:
+    Division(Operation* p1, Operation* p2);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
 class Power : public Operation {
   public:
     Power(Operation* p1, Operation* p2);
@@ -89,13 +137,61 @@ class Power : public Operation {
 
     void derive();
 
-    // NOTE: broadcasting not yet supported
-    //
-    // element-wise multiplication - no shape change
+    // Element-wise raising to a power - no shape change
     Buffer* operate();
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
+};
+
+class Cast : public Operation {
+  public:
+    Cast(Operation* buf);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* buf);
+};
+
+class SquareRoot : public Operation {
+    // Tensors going through this operation can be promoted
+    // to float32 if they're signed and not a floating point tensor
+    bool promotion;
+
+  public:
+    SquareRoot(Operation* p, bool promotion=false);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* buf);
+};
+
+class Exponential : public Operation {
+  public:
+    Exponential(Operation* p);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    // Element-wise exp() function - no shape change.
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* buf);
 };
 
 class Constant : public Operation {

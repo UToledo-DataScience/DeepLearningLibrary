@@ -29,13 +29,13 @@ Tensor::Tensor(std::vector<int> values, std::vector<int> newShape, Allocator* a)
     operation_ = allocator_->newOperation(new Constant(buffer_));
 }
 
-Tensor::Tensor(Tensor* t1, Tensor* t2, Operation* op) {
+Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op) {
     children_ = 0;
 
     // NOTE: Since the tensor resulting from this operation will
     //       inherit the allocator of its parents, this objects
-    if (t1->getAllocator() == t2->getAllocator())
-        allocator_ = t1->getAllocator();
+    if (t1.getAllocator() == t2.getAllocator())
+        allocator_ = t1.getAllocator();
     else {
         std::cout << "Error: allocator mismatch in tensor instantiation. "
                   << "This should not be happening" << std::endl;
@@ -43,13 +43,13 @@ Tensor::Tensor(Tensor* t1, Tensor* t2, Operation* op) {
         exit(1);
     }
 
-    if (t1 == t2) {
-        buffer_ = allocator_->newBuffer(new Buffer(t1->getShape(), t1->getAllocator()));
+    if (&t1 == &t2) {
+        buffer_ = allocator_->newBuffer(new Buffer(t1.getShape(), t1.getAllocator()));
 
-        t1->incrChildren();
+        t1.incrChildren();
     }
 
-    // Buffer shenanigans if a tensor is used in two or more operations.
+    // Buffer shenanigans if a single tensor is used in two or more operations.
     //
     // For each tensor, n-1 buffers need to be allocated
     // where n is the number of children from the tensor's operation node.
@@ -58,43 +58,71 @@ Tensor::Tensor(Tensor* t1, Tensor* t2, Operation* op) {
     // needs moved to the latest tensor so that in-place calculations
     // don't overwrite the original buffer and throw off the rest
     // of the calculation graph.
-    else if (t1->getSize() >= t2->getSize()) {
-        if (t1->getChildren() > 0) {
-            buffer_ = t1->getBuffer();
-            t1->setBuffer(allocator_->newBuffer(new Buffer(t1->getBuffer())));
+    else if (t1.getSize() >= t2.getSize()) {
+        if (t1.getChildren() > 0) {
+            buffer_ = t1.getBuffer();
+            t1.setBuffer(allocator_->newBuffer(new Buffer(t1.getBuffer())));
 
-            t1->incrChildren();
+            t1.incrChildren();
         }
         // to also account for if t1.size == t2.size
-        else if (t2->getChildren() > 0) {
-            buffer_ = t2->getBuffer();
-            t2->setBuffer(allocator_->newBuffer(new Buffer(t2->getBuffer())));
+        else if (t2.getChildren() > 0) {
+            buffer_ = t2.getBuffer();
+            t2.setBuffer(allocator_->newBuffer(new Buffer(t2.getBuffer())));
 
-            t2->incrChildren();
+            t2.incrChildren();
         }
         else {
-            buffer_ = t1->getBuffer();
-            t1->incrChildren();
+            buffer_ = t1.getBuffer();
+            t1.incrChildren();
         }
     }
     else {
-        if (t2->getChildren() > 0) {
-            buffer_ = t1->getBuffer();
-            t2->setBuffer(allocator_->newBuffer(new Buffer(t2->getBuffer())));
+        if (t2.getChildren() > 0) {
+            buffer_ = t1.getBuffer();
+            t2.setBuffer(allocator_->newBuffer(new Buffer(t2.getBuffer())));
 
-            t2->incrChildren();
+            t2.incrChildren();
         }
         else {
-            buffer_ = t2->getBuffer();
-            t2->incrChildren();
+            buffer_ = t2.getBuffer();
+            t2.incrChildren();
         }
     }
 
     // data type checks should have been performed by now
-    dtype_ = t1->getDataType();
+    dtype_ = t1.getDataType();
 
     operation_ = op;
 
+    operation_->setBuffer(buffer_);
+}
+
+Tensor::Tensor(Tensor& t, Operation* op) {
+    children_ = 0;
+    t.incrChildren();
+
+    allocator_ = t.getAllocator();
+    buffer_ = t.getBuffer();
+    dtype_ = t.getDataType();
+    operation_ = op;
+    operation_->setBuffer(buffer_);
+}
+
+Tensor::Tensor(Tensor& t, Operation* op, DataType new_dtype) {
+    children_ = 0;
+    t.incrChildren();
+
+    allocator_ = t.getAllocator();
+
+    // TODO: Check to see if previous buffer is smaller or larger in data type size.
+    //if (t.getBuffer()->getDataType() < )
+    buffer_ = allocator_->newBuffer(new Buffer(t.getBuffer(), new_dtype));
+    //else
+    //    buffer_ = t.getBuffer();
+
+    dtype_ = new_dtype;
+    operation_ = op;
     operation_->setBuffer(buffer_);
 }
 
@@ -109,6 +137,9 @@ void Tensor::uproot() {
 }
 
 std::vector<int>& Tensor::getShape() {
+    for (auto i : buffer_->getShape())
+        std::cout << i << " ";
+    std::cout << std::endl;
     return buffer_->getShape();
 }
 

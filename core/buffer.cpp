@@ -25,6 +25,21 @@ Buffer::Buffer(Buffer* buf) {
     memcpy(buffer_data_, buf_ptr, total_size_);
 }
 
+Buffer::Buffer(Buffer* buf, DataType dtype) {
+    buffer_data_ = nullptr;
+
+    shape_ = buf->getShape();
+
+    total_elements_ = buf->getElements();
+    void* buf_ptr = buf->buffer_data_;
+
+    dtype_ = dtype;
+
+    allocator_ = buf->getAllocator();
+
+    initialize();
+}
+
 Buffer::Buffer(std::vector<int> s, Allocator* a) {
     total_size_ = 1;
     for (int i : s)
@@ -136,13 +151,25 @@ void Buffer::initialize() {
     }
 }
 
-std::vector<int>& Buffer::getShape() { return shape_; }
+std::vector<int>& Buffer::getShape() {
+    return shape_;
+}
 
-Allocator* Buffer::getAllocator() { return allocator_; }
+Allocator* Buffer::getAllocator() {
+    return allocator_;
+}
 
-DataType Buffer::getDataType() { return dtype_; }
+DataType Buffer::getDataType() {
+    return dtype_;
+}
 
-uint64_t Buffer::getSize() { return total_size_; }
+void Buffer::setDataType(DataType new_dtype) {
+    dtype_ = new_dtype;
+}
+
+uint64_t Buffer::getSize() {
+    return total_size_;
+}
 
 uint64_t Buffer::getElements() {
     uint64_t total = 1;

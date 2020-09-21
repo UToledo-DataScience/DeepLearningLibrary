@@ -28,6 +28,7 @@ class Allocator;
 // TODO: refine the creation rules, it feels too ad hoc.
 class Buffer {
     friend class Allocator;
+    friend class Cast; // For ease in changing buffer data types.
 
     void* buffer_data_;
 
@@ -50,8 +51,13 @@ class Buffer {
   public:
     Buffer();
 
-    // copy constructor
+    // Custom copy constructor.
     Buffer(Buffer* buf);
+
+    // Custom copy constructor for implicit cast-conversions.
+    // NOTE: This constructor does not copy buf->buffer_data_, it only 
+    //       allocates this->buffer_data_ based on buf->getElements()
+    Buffer(Buffer* buf, DataType new_dtype);
 
     // Uninitialized buffer.
     // TODO: expand on this.
@@ -85,6 +91,8 @@ class Buffer {
     BDType* getBufferDataAsTemplate();
 
     DataType getDataType();
+
+    void setDataType(DataType new_dtype);
 
     std::vector<int>& getShape();
 

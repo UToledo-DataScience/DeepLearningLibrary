@@ -5,16 +5,19 @@ namespace deeplib {
 
 enum class DataType {
     UINT8 = 0,
-    UINT16,
-    UINT32,
-    UINT64,
-    
     INT8,
-    INT16,
-    INT32,
-    INT64,
+    _,
 
+    UINT16,
+    INT16,
+    __,
+
+    UINT32,
+    INT32,
     FLOAT32,
+
+    UINT64,
+    INT64,
     FLOAT64,
 
     BOOL

@@ -6,6 +6,109 @@ using std::string;
 
 namespace deeplib {
 
+// Feed an Operation type (not Operation itself though) in here along with the buffers
+// to avoid unnecessary repeating of the switch statements.
+// 
+// A better method than the previous in avoiding code bloat (I hope).
+template <class Op>
+void compTemplateChoice(Op* op, Buffer* b1, Buffer* b2, DataType dtype) {
+    switch (dtype) {
+      case DataType::UINT8:
+        op->template compute<uint8_t>(b1, b2);
+        return;
+
+      case DataType::UINT16:
+        op->template compute<uint16_t>(b1, b2);
+        return;
+
+      case DataType::UINT32:
+        op->template compute<uint32_t>(b1, b2);
+        return;
+
+      case DataType::UINT64:
+        op->template compute<uint64_t>(b1, b2);
+        return;
+
+      case DataType::INT8:
+        op->template compute<int8_t>(b1, b2);
+        return;
+
+      case DataType::INT16:
+        op->template compute<int16_t>(b1, b2);
+        return;
+
+      case DataType::INT32:
+        op->template compute<int32_t>(b1, b2);
+        return;
+
+      case DataType::INT64:
+        op->template compute<int64_t>(b1, b2);
+        return;
+            
+      case DataType::FLOAT32:
+        op->template compute<float>(b1, b2);
+        return;
+
+      case DataType::FLOAT64:
+        op->template compute<double>(b1, b2);
+        return;
+
+      default:
+        std::cout << "ERROR: bad data type!" << std::endl;
+        assert(false);
+    }
+}
+
+// Overloaded for unary operations.
+template <class Op>
+void compTemplateChoice(Op* op, Buffer* b1, DataType dtype) {
+    switch (dtype) {
+      case DataType::UINT8:
+        op->template compute<uint8_t>(b1);
+        return;
+
+      case DataType::UINT16:
+        op->template compute<uint16_t>(b1);
+        return;
+
+      case DataType::UINT32:
+        op->template compute<uint32_t>(b1);
+        return;
+
+      case DataType::UINT64:
+        op->template compute<uint64_t>(b1);
+        return;
+
+      case DataType::INT8:
+        op->template compute<int8_t>(b1);
+        return;
+
+      case DataType::INT16:
+        op->template compute<int16_t>(b1);
+        return;
+
+      case DataType::INT32:
+        op->template compute<int32_t>(b1);
+        return;
+
+      case DataType::INT64:
+        op->template compute<int64_t>(b1);
+        return;
+            
+      case DataType::FLOAT32:
+        op->template compute<float>(b1);
+        return;
+
+      case DataType::FLOAT64:
+        op->template compute<double>(b1);
+        return;
+
+      default:
+        std::cout << "ERROR: bad data type!" << std::endl;
+        assert(false);
+    }
+}
+
 //-----------------------------------\\
 // class Operation;                  \\
 //-----------------------------------\\
@@ -37,11 +140,78 @@ Operation::Operation() {
 }
 
 //-----------------------------------\\
+// class Addition;                   \\
+//-----------------------------------\\
+
+// Operation graph node for element-wise multiplication.
+Addition::Addition(Operation* p1, Operation* p2) {
+    this->parent1_ = p1;
+    this->parent2_ = p2;
+    this->type_ = "multiplication";
+}
+
+void Addition::setBuffer(Buffer* buf) { this->buffer_ = buf; }
+
+Buffer* Addition::getBuffer() { return this->buffer_; }
+
+void Addition::derive() {}
+
+// NOTE: Broadcasting only supported for constants.
+//
+// Single-threaded approach.
+//
+// Element-wise multiplication - no shape change.
+Buffer* Addition::operate() {
+    this->buffer_->initialize();
+
+    Buffer* b1 = this->parent1_->operate();
+    Buffer* b2 = this->parent2_->operate();
+
+    DataType dtype = b1->getDataType();
+
+    compTemplateChoice<Addition>(this, b1, b2, dtype);
+    return this->buffer_;
+}
+
+//-----------------------------------\\
+// class Subtraction;                \\
+//-----------------------------------\\
+
+// Operation graph node for element-wise division.
+Subtraction::Subtraction(Operation* p1, Operation* p2) {
+    this->parent1_ = p1;
+    this->parent2_ = p2;
+    this->type_ = "multiplication";
+}
+
+void Subtraction::setBuffer(Buffer* buf) { this->buffer_ = buf; }
+
+Buffer* Subtraction::getBuffer() { return this->buffer_; }
+
+void Subtraction::derive() {}
+
+// NOTE: Broadcasting only supported for constants.
+//
+// Single-threaded approach.
+//
+// Element-wise multiplication - no shape change.
+Buffer* Subtraction::operate() {
+    this->buffer_->initialize();
+
+    Buffer* b1 = this->parent1_->operate();
+    Buffer* b2 = this->parent2_->operate();
+
+    DataType dtype = b1->getDataType();
+
+    compTemplateChoice<Subtraction>(this, b1, b2, dtype);
+    return this->buffer_;
+}
+
+//-----------------------------------\\
 // class Multiplication;             \\
 //-----------------------------------\\
 
-// operation graph node for element-wise multiplication
-// only to be used within Tensor<T> objects
+// Operation graph node for element-wise multiplication.
 Multiplication::Multiplication(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
@@ -52,14 +222,9 @@ void Multiplication::setBuffer(Buffer* buf) { this->buffer_ = buf; }
 
 Buffer* Multiplication::getBuffer() { return this->buffer_; }
 
-void Multiplication::derive() {
-    //OpDType a = this->parent1_->operate() * this->parent2_->derive();
-    //OpDType b = this->parent2_->operate() * this->parent1_->derive();
+void Multiplication::derive() {}
 
-    //return a + b;
-}
-
-// NOTE: broadcasting not yet supported
+// NOTE: Broadcasting only supported for constants.
 //
 // Single-threaded approach.
 //
@@ -72,57 +237,42 @@ Buffer* Multiplication::operate() {
 
     DataType dtype = b1->getDataType();
 
-    // there HAS to be a better way of dealing with data types
-    // please let me know
-    switch (dtype) {
-      case DataType::UINT8:
-        this->compute<uint8_t>(b1, b2);
-        return this->buffer_;
+    compTemplateChoice<Multiplication>(this, b1, b2, dtype);
+    return this->buffer_;
+}
 
-      case DataType::UINT16:
-        this->compute<uint16_t>(b1, b2);
-        return this->buffer_;
+//-----------------------------------\\
+// class Division;                   \\
+//-----------------------------------\\
 
-      case DataType::UINT32:
-        this->compute<uint32_t>(b1, b2);
-        return this->buffer_;
+// Operation graph node for element-wise division.
+Division::Division(Operation* p1, Operation* p2) {
+    this->parent1_ = p1;
+    this->parent2_ = p2;
+    this->type_ = "multiplication";
+}
 
-      case DataType::UINT64:
-        this->compute<uint64_t>(b1, b2);
-        return this->buffer_;
+void Division::setBuffer(Buffer* buf) { this->buffer_ = buf; }
 
-      case DataType::INT8:
-        this->compute<int8_t>(b1, b2);
-        return this->buffer_;
+Buffer* Division::getBuffer() { return this->buffer_; }
 
-      case DataType::INT16:
-        this->compute<int16_t>(b1, b2);
-        return this->buffer_;
+void Division::derive() {}
 
-      case DataType::INT32:
-        this->compute<int32_t>(b1, b2);
-        return this->buffer_;
+// NOTE: Broadcasting only supported for constants.
+//
+// Single-threaded approach.
+//
+// Element-wise multiplication - no shape change.
+Buffer* Division::operate() {
+    this->buffer_->initialize();
 
-      case DataType::INT64:
-        this->compute<int64_t>(b1, b2);
-        return this->buffer_;
-            
-      case DataType::FLOAT32:
-        this->compute<float>(b1, b2);
-        return this->buffer_;
+    Buffer* b1 = this->parent1_->operate();
+    Buffer* b2 = this->parent2_->operate();
 
-      case DataType::FLOAT64:
-        this->compute<double>(b1, b2);
-        return this->buffer_;
+    DataType dtype = b1->getDataType();
 
-      case DataType::BOOL:
-        this->compute<bool>(b1, b2);
-        return this->buffer_;
-
-      default:
-        std::cout << "ERROR: bad data type!" << std::endl;
-        assert(false);
-    }
+    compTemplateChoice<Division>(this, b1, b2, dtype);
+    return this->buffer_;
 }
 
 //-----------------------------------\\
@@ -139,12 +289,7 @@ void Power::setBuffer(Buffer* buf) { this->buffer_ = buf; }
 
 Buffer* Power::getBuffer() { return this->buffer_; }
 
-void Power::derive() {
-    //OpDType a = this->parent1_->operate() * this->parent2_->derive();
-    //OpDType b = this->parent2_->operate() * this->parent1_->derive();
-
-    //return a + b;
-}
+void Power::derive() {}
 
 // NOTE: broadcasting not yet supported
 //
@@ -157,55 +302,107 @@ Buffer* Power::operate() {
 
     DataType dtype = b1->getDataType();
 
-    switch (dtype) {
-      case DataType::UINT8:
-        this->compute<uint8_t>(b1, b2);
-        return this->buffer_;
+    compTemplateChoice<Power>(this, b1, b2, dtype);
+    return this->buffer_;
+}
 
-      case DataType::UINT16:
-        this->compute<uint16_t>(b1, b2);
-        return this->buffer_;
+//-----------------------------------\\
+// class Cast;                       \\
+//-----------------------------------\\
 
-      case DataType::UINT32:
-        this->compute<uint32_t>(b1, b2);
-        return this->buffer_;
+Cast::Cast(Operation* p1) {
+    this->parent1_ = p1;
+    this->parent2_ = nullptr;
+    this->type_ = "cast";
+}
 
-      case DataType::UINT64:
-        this->compute<uint64_t>(b1, b2);
-        return this->buffer_;
+void Cast::setBuffer(Buffer* buf) {
+    this->buffer_ = buf;
+}
 
-      case DataType::INT8:
-        this->compute<int8_t>(b1, b2);
-        return this->buffer_;
+Buffer* Cast::getBuffer() {
+    return this->buffer_;
+}
 
-      case DataType::INT16:
-        this->compute<int16_t>(b1, b2);
-        return this->buffer_;
+void Cast::derive() {}
 
-      case DataType::INT32:
-        this->compute<int32_t>(b1, b2);
-        return this->buffer_;
+// NOTE: broadcasting not yet supported
+//
+// element-wise multiplication - no shape change
+Buffer* Cast::operate() {
+    this->buffer_->initialize();
 
-      case DataType::INT64:
-        this->compute<int64_t>(b1, b2);
-        return this->buffer_;
-            
-      case DataType::FLOAT32:
-        this->compute<float>(b1, b2);
-        return this->buffer_;
+    Buffer* buf = this->parent1_->operate();
 
-      case DataType::FLOAT64:
-        this->compute<double>(b1, b2);
-        return this->buffer_;
+    DataType dtype = this->buffer_->getDataType();
 
-      case DataType::BOOL:
-        this->compute<bool>(b1, b2);
-        return this->buffer_;
+    compTemplateChoice<Cast>(this, buf, dtype);
+    return this->buffer_;
+}
 
-      default:
-        std::cout << "ERROR: bad data type!" << std::endl;
-        assert(false);
-    }
+//-----------------------------------\\
+// class SquareRoot;                 \\
+//-----------------------------------\\
+
+SquareRoot::SquareRoot(Operation* p1, bool promotion) {
+    this->parent1_ = p1;
+    this->parent2_ = nullptr;
+    this->type_ = "square_root";
+    this->promotion = promotion;
+}
+
+void SquareRoot::setBuffer(Buffer* buf) { this->buffer_ = buf; }
+
+Buffer* SquareRoot::getBuffer() { return this->buffer_; }
+
+void SquareRoot::derive() {}
+
+// NOTE: broadcasting not yet supported
+//
+// element-wise multiplication - no shape change
+Buffer* SquareRoot::operate() {
+    this->buffer_->initialize();
+
+    Buffer* buf = this->parent1_->operate();
+
+    DataType dtype;
+    if (this->promotion)
+        dtype = DataType::FLOAT32;
+    else
+        dtype = this->buffer_->getDataType();
+
+    compTemplateChoice<SquareRoot>(this, buf, dtype);
+    return this->buffer_;
+}
+
+//-----------------------------------\\
+// class Exponential;                \\
+//-----------------------------------\\
+
+Exponential::Exponential(Operation* p1) {
+    this->parent1_ = p1;
+    this->parent2_ = nullptr;
+    this->type_ = "exponential";
+}
+
+void Exponential::setBuffer(Buffer* buf) { this->buffer_ = buf; }
+
+Buffer* Exponential::getBuffer() { return this->buffer_; }
+
+void Exponential::derive() {}
+
+// NOTE: broadcasting not yet supported
+//
+// element-wise multiplication - no shape change
+Buffer* Exponential::operate() {
+    this->buffer_->initialize();
+
+    Buffer* buf = this->parent1_->operate();
+
+    DataType dtype = buf->getDataType();
+
+    compTemplateChoice<Exponential>(this, buf, dtype);
+    return this->buffer_;
 }
 
 //-----------------------------------\\

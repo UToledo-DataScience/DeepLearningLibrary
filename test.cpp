@@ -62,21 +62,22 @@ void basicOperations() {
 void matrixOperations() {
     Allocator a;
 
-    vector<int> m1 = { 1, 2, 3,
-                       4, 5, 6,
-                       7, 8, 9 };
+    vector<int> m1;
+    for (int i = 0; i < 100; i++)
+        m1.push_back(i+1);
 
-    vector<int> m2 = { 9, 8, 7,
-                       6, 5, 4,
-                       3, 2, 1 };
+    vector<int> m2 = { 1, 1,
+                       2, 1 };
 
-    vector<int> shape = { 1, 3, 3 };
+    vector<int> shape = { 10, 10 };
+    vector<int> shape2 = { 2, 2 };
     vector<int>& s = shape;
+    vector<int>& s2 = shape2;
 
     Tensor t1 = Tensor(m1, s, &a);
-    Tensor t2 = Tensor(m2, s, &a);
+    Tensor t2 = Tensor(m2, s2, &a);
 
-    Tensor t3 = matmul(t1, t2);
+    Tensor t3 = conv2d(t1, t2);
 
     t3.operate();
     t3.print();

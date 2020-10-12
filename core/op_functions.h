@@ -80,6 +80,29 @@ Tensor matmul(Tensor& t1, Tensor& t2) {
             new MatrixMultiplication(t1.getOperation(), t2.getOperation())), new_shape);
 }
 
+// TODO: padding, strides, dilation_rate
+Tensor conv2d(Tensor& image, Tensor& kernel) {
+    assert(image.getDataType() == kernel.getDataType());
+    std::vector<int>& image_shape = image.getShape();
+    std::vector<int>& kernel_shape = kernel.getShape();
+
+    std::vector<int> new_shape;
+
+    int kernel_offset_y = std::ceil(static_cast<float>(kernel_shape[0]) / 2) - 1;
+    int kernel_offset_x = std::ceil(static_cast<float>(kernel_shape[1]) / 2) - 1;
+
+    assert(image_shape.size() >= 2 && kernel_shape.size() == 2);
+    for (int i = 0; i < image_shape.size()-2; i++)
+        new_shape.push_back(image_shape[i]);
+
+    new_shape.push_back(image_shape[image_shape.size()-2] - kernel_shape[0] + 1);
+    new_shape.push_back(image_shape[image_shape.size()-1] - kernel_shape[1] + 1);
+
+    return Tensor(image, kernel,
+        image.getAllocator()->newOperation(
+            new Convolution2D(image.getOperation(), kernel.getOperation())), new_shape);
+}
+
 Tensor sqrt(Tensor& t) {
     DataType dtype = t.getDataType();
     if (dtype < DataType::FLOAT32) {

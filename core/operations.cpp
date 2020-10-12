@@ -305,6 +305,35 @@ Buffer* MatrixMultiplication::operate() {
 }
 
 //-----------------------------------\\
+// class Convolution2D;              \\
+//-----------------------------------\\
+
+// Operation graph node for element-wise division.
+Convolution2D::Convolution2D(Operation* p1, Operation* p2) {
+    this->parent1_ = p1;
+    this->parent2_ = p2;
+    this->type_ = "convolution2d";
+}
+
+void Convolution2D::setBuffer(Buffer* buf) { this->buffer_ = buf; }
+
+Buffer* Convolution2D::getBuffer() { return this->buffer_; }
+
+void Convolution2D::derive() {}
+
+Buffer* Convolution2D::operate() {
+    this->buffer_->initialize();
+
+    Buffer* b1 = this->parent1_->operate();
+    Buffer* b2 = this->parent2_->operate();
+
+    DataType dtype = b1->getDataType();
+
+    compTemplateChoice<Convolution2D>(this, b1, b2, dtype);
+    return this->buffer_;
+}
+
+//-----------------------------------\\
 // class Power;                      \\
 //-----------------------------------\\
 

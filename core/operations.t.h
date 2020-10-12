@@ -139,6 +139,44 @@ void MatrixMultiplication::compute(Buffer* b1, Buffer* b2) {
     }
 }
 
+// NOTE: kernel shape (i.e. b2->getShape()) will always be ND for ConvolutionND
+template <typename OpDType>
+void Convolution2D::compute(Buffer* b1, Buffer* b2) {
+    std::vector<int>& b1_shape = b1->getShape();
+    std::vector<int> image_shape;
+    for (int s = b1_shape.size()-2; s < b1_shape.size(); s++)
+        image_shape.push_back(b1_shape[s]);
+
+    std::vector<int>& kernel_shape = b2->getShape();
+    std::vector<int>& output_shape = this->buffer_->getShape();
+
+    // NOTE: Fix for shapes > 2 !
+
+    // (y, x) == (0, 0) will refer to the top left of the image
+    int kernel_offset_y = std::ceil(kernel_shape[0] / 2) - 1;
+    int kernel_offset_x = std::ceil(kernel_shape[1] / 2) - 1;
+
+    // Perform the iterations from the coordinate view of the output image.
+    for (int oy = kernel_offset_y; oy < image_shape[0]-kernel_offset_y; oy++) {
+        for (int ox = kernel_offset_x; ox < image_shape[0]-kernel_offset_x; ox++) {
+            OpDType local_sum = 0;
+            // Indices prefixed with k refer to the kernel, i refer to the image.
+            for (int ky = kernel_shape[0]-1, iy = oy-kernel_offset_y;
+                 ky > -1, iy < oy+kernel_offset_y+1;
+                 ky--, iy++) {
+                for (int kx = kernel_shape[1]-1, ix = ox-kernel_offset_x;
+                     kx > -1, ix < ox+kernel_offset_x+1;
+                     kx--, ix++) {
+                    // NOTE: This needs changed for shapes > 2 !
+                    local_sum += b1->getIndex<OpDType>(iy*image_shape[1]+ix) * b2->getIndex<OpDType>(ky*kernel_shape[1]+kx);
+                }
+            }
+
+            this->buffer_->setIndex<OpDType>(oy*output_shape[1]+ox, local_sum);
+        }
+    }
+}
+
 template <typename OpDType>
 void Power::compute(Buffer* b1, Buffer* b2) {
     if (b1->getElements() == 1) {

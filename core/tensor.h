@@ -23,7 +23,7 @@ class Tensor {
     void incrChildren() { children_++; }
 
   public:
-    Tensor(std::vector<int> newShape, DataType dt, Allocator* a);
+    Tensor(std::vector<int> new_shape, DataType dt, Allocator* a);
 
     // Fresh tensor initialized using a 1D set of values.
     // NOTE: This will have to be changed.
@@ -34,6 +34,10 @@ class Tensor {
     // Tensor constructed from a binary operation. The operation given
     // is what this tensors operation will be.
     Tensor(Tensor& t1, Tensor& t2, Operation* op);
+
+    // Forced allocation of a new Buffer using a new shape. Currently used for matrix operations
+    // which yield a differently shaped output.
+    Tensor(Tensor& t1, Tensor& t2, Operation* op, std::vector<int> new_shape);
 
     // Tensor constructed from a unary operation.
     Tensor(Tensor& t, Operation* op);

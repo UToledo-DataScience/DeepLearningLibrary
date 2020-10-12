@@ -69,6 +69,76 @@ void Division::compute(Buffer* b1, Buffer* b2) {
     }
 }
 
+// Naive matrix multiplication algorithm.
+template <typename OpDType>
+void MatrixMultiplication::compute(Buffer* b1, Buffer* b2) {
+    std::vector<int>& shape1 = b1->getShape();
+    std::vector<int>& shape2 = b2->getShape();
+
+    if (shape1.size() > 2) {
+        int matrix_count = 1;
+        int matrix_sizes[3] = { shape1[shape1.size()-2]*shape1[shape1.size()-1],
+                                shape2[shape2.size()-2]*shape2[shape2.size()-1],
+                                shape1[shape1.size()-2]*shape2[shape2.size()-1] };
+
+        for (int i = 0; i < shape1.size()-2; i++)
+            matrix_count *= shape1[i];
+
+        for (int i = 0; i < matrix_count; i++) {
+            int start_indices[3] = { matrix_sizes[0]*i,
+                                     matrix_sizes[1]*i,
+                                     matrix_sizes[2]*i };
+
+            int in_cols1 = shape1[shape1.size()-1];
+            int in_cols2 = shape2[shape2.size()-2];
+
+            // Output rows and columns.
+            int out_rows = shape1[shape1.size()-2];
+            int out_cols = shape2[shape2.size()-1];
+
+            int vec_length = shape1[shape1.size()-1];
+
+            for (int r = 0; r < out_rows; r++) {
+                for (int c = 0; c < out_cols; c++) {
+                    OpDType vecdot = 0;
+                    for (int v = 0; v < vec_length; v++) {
+                        OpDType v1, v2;
+                        v1 = (OpDType)(b1->getIndex<OpDType>(start_indices[0]+r*in_cols1+v));
+                        v2 = (OpDType)(b2->getIndex<OpDType>(start_indices[1]+v*in_cols2+c));
+                        vecdot += v1 * v2;
+                    }
+
+                    this->buffer_->setIndex<OpDType>(start_indices[2]+r*out_cols+c, vecdot);
+                }
+            }
+        }
+    }
+    else {
+        int in_cols1 = shape1[shape1.size()-1];
+        int in_cols2 = shape2[shape2.size()-2];
+
+        // Output rows and columns.
+        int out_rows = shape1[shape1.size()-2];
+        int out_cols = shape2[shape2.size()-1];
+
+        int vec_length = shape1[shape1.size()-1];
+
+        for (int r = 0; r < out_rows; r++) {
+            for (int c = 0; c < out_cols; c++) {
+                OpDType vecdot = 0;
+                for (int v = 0; v < vec_length; v++) {
+                    OpDType v1, v2;
+                    v1 = (OpDType)(b1->getIndex<OpDType>(r*in_cols1+v));
+                    v2 = (OpDType)(b2->getIndex<OpDType>(v*in_cols2+c));
+                    vecdot += v1 * v2;
+                }
+
+                this->buffer_->setIndex<OpDType>(r*out_cols+c, vecdot);
+            }
+        }
+    }
+}
+
 template <typename OpDType>
 void Power::compute(Buffer* b1, Buffer* b2) {
     if (b1->getElements() == 1) {

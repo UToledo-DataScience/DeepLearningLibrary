@@ -128,6 +128,21 @@ class Division : public Operation {
     void compute(Buffer* b1, Buffer* b2);
 };
 
+class MatrixMultiplication : public Operation {
+  public:
+    MatrixMultiplication(Operation* p1, Operation* p2);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
 class Power : public Operation {
   public:
     Power(Operation* p1, Operation* p2);

@@ -9,23 +9,23 @@
 
 namespace deeplib {
 
-Tensor::Tensor(std::vector<int> newShape, DataType data_type, Allocator* a) {
+Tensor::Tensor(std::vector<int> new_shape, DataType data_type, Allocator* a) {
     children_ = 0;
     allocator_ = a;
 
     dtype_ = data_type;
 
-    buffer_ = allocator_->newBuffer(new Buffer(newShape, a));
+    buffer_ = allocator_->newBuffer(new Buffer(new_shape, a));
     operation_ = allocator_->newOperation(new Constant(buffer_)); // ?? subject to change
 }
 
-Tensor::Tensor(std::vector<int> values, std::vector<int> newShape, Allocator* a) {
+Tensor::Tensor(std::vector<int> values, std::vector<int> shape, Allocator* a) {
     children_ = 0;
     allocator_ = a;
 
     dtype_ = DataType::INT32;
 
-    buffer_ = allocator_->newBuffer(new Buffer(values, newShape, a));
+    buffer_ = allocator_->newBuffer(new Buffer(values, shape, a));
     operation_ = allocator_->newOperation(new Constant(buffer_));
 }
 
@@ -92,9 +92,17 @@ Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op) {
 
     // data type checks should have been performed by now
     dtype_ = t1.getDataType();
-
     operation_ = op;
+    operation_->setBuffer(buffer_);
+}
 
+Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op, std::vector<int> new_shape) {
+    children_ = 0;
+
+    allocator_ = t1.getAllocator();
+    buffer_ = allocator_->newBuffer(new Buffer(new_shape, allocator_));
+    dtype_ = t1.getDataType();
+    operation_ = op;
     operation_->setBuffer(buffer_);
 }
 
@@ -137,9 +145,6 @@ void Tensor::uproot() {
 }
 
 std::vector<int>& Tensor::getShape() {
-    for (auto i : buffer_->getShape())
-        std::cout << i << " ";
-    std::cout << std::endl;
     return buffer_->getShape();
 }
 

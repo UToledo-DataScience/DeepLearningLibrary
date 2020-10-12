@@ -147,7 +147,7 @@ Operation::Operation() {
 Addition::Addition(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
-    this->type_ = "multiplication";
+    this->type_ = "addition";
 }
 
 void Addition::setBuffer(Buffer* buf) { this->buffer_ = buf; }
@@ -181,7 +181,7 @@ Buffer* Addition::operate() {
 Subtraction::Subtraction(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
-    this->type_ = "multiplication";
+    this->type_ = "subtraction";
 }
 
 void Subtraction::setBuffer(Buffer* buf) { this->buffer_ = buf; }
@@ -249,7 +249,7 @@ Buffer* Multiplication::operate() {
 Division::Division(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
-    this->type_ = "multiplication";
+    this->type_ = "division";
 }
 
 void Division::setBuffer(Buffer* buf) { this->buffer_ = buf; }
@@ -272,6 +272,35 @@ Buffer* Division::operate() {
     DataType dtype = b1->getDataType();
 
     compTemplateChoice<Division>(this, b1, b2, dtype);
+    return this->buffer_;
+}
+
+//-----------------------------------\\
+// class MatrixMultiplication;       \\
+//-----------------------------------\\
+
+// Operation graph node for element-wise division.
+MatrixMultiplication::MatrixMultiplication(Operation* p1, Operation* p2) {
+    this->parent1_ = p1;
+    this->parent2_ = p2;
+    this->type_ = "matrix_multiplication";
+}
+
+void MatrixMultiplication::setBuffer(Buffer* buf) { this->buffer_ = buf; }
+
+Buffer* MatrixMultiplication::getBuffer() { return this->buffer_; }
+
+void MatrixMultiplication::derive() {}
+
+Buffer* MatrixMultiplication::operate() {
+    this->buffer_->initialize();
+
+    Buffer* b1 = this->parent1_->operate();
+    Buffer* b2 = this->parent2_->operate();
+
+    DataType dtype = b1->getDataType();
+
+    compTemplateChoice<MatrixMultiplication>(this, b1, b2, dtype);
     return this->buffer_;
 }
 

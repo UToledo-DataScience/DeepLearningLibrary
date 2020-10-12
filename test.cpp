@@ -11,8 +11,7 @@ using namespace deeplib;
 
 // Operations displayed below are := f(x, y) = (x + ((exp(x * y))^y * x)^1 - y) / x)
 // where x == { 2, 2, ... } and y == { 3, 3, ... }
-
-int main() {
+void basicOperations() {
     Allocator a;
 
     int size = 10;
@@ -58,4 +57,34 @@ int main() {
     t3.uproot();
 
     a.printStats();
+}
+
+void matrixOperations() {
+    Allocator a;
+
+    vector<int> m1 = { 1, 2, 3,
+                       4, 5, 6,
+                       7, 8, 9 };
+
+    vector<int> m2 = { 9, 8, 7,
+                       6, 5, 4,
+                       3, 2, 1 };
+
+    vector<int> shape = { 1, 3, 3 };
+    vector<int>& s = shape;
+
+    Tensor t1 = Tensor(m1, s, &a);
+    Tensor t2 = Tensor(m2, s, &a);
+
+    Tensor t3 = matmul(t1, t2);
+
+    t3.operate();
+    t3.print();
+    t3.uproot();
+
+    a.printStats();
+}
+
+int main() {
+    matrixOperations();
 }

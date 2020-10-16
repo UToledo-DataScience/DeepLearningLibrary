@@ -177,50 +177,50 @@ void Tensor::setBuffer(Buffer* buf) {
     operation_->setBuffer(buf);
 }
 
-void Tensor::print() {
+void Tensor::print(bool linear) {
     switch (dtype_) {
       case DataType::UINT8:
-        buffer_->print<uint8_t>();
+        buffer_->print<uint8_t>(linear);
         return;
 
       case DataType::UINT16:
-        buffer_->print<uint16_t>();
+        buffer_->print<uint16_t>(linear);
         return;
 
       case DataType::UINT32:
-        buffer_->print<uint32_t>();
+        buffer_->print<uint32_t>(linear);
         return;
 
       case DataType::UINT64:
-        buffer_->print<uint64_t>();
+        buffer_->print<uint64_t>(linear);
         return;
 
       case DataType::INT8:
-        buffer_->print<int8_t>();
+        buffer_->print<int8_t>(linear);
         return;
 
       case DataType::INT16:
-        buffer_->print<int16_t>();
+        buffer_->print<int16_t>(linear);
         return;
 
       case DataType::INT32:
-        buffer_->print<int32_t>();
+        buffer_->print<int32_t>(linear);
         return;
 
       case DataType::INT64:
-        buffer_->print<int64_t>();
+        buffer_->print<int64_t>(linear);
         return;
         
       case DataType::FLOAT32:
-        buffer_->print<float>();
+        buffer_->print<float>(linear);
         return;
 
       case DataType::FLOAT64:
-        buffer_->print<double>();
+        buffer_->print<double>(linear);
         return;
 
       case DataType::BOOL:
-        buffer_->print<bool>();
+        buffer_->print<bool>(linear);
         return;
 
       default:

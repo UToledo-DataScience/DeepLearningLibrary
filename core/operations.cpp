@@ -309,7 +309,10 @@ Buffer* MatrixMultiplication::operate() {
 //-----------------------------------\\
 
 // Operation graph node for element-wise division.
-Convolution2D::Convolution2D(Operation* p1, Operation* p2) {
+Convolution2D::Convolution2D(Operation* p1, Operation* p2, std::string padding, int (&strides)[2]) {
+    this->padding_ = padding;
+    this->strides_[0] = strides[0];
+    this->strides_[1] = strides[1];
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->type_ = "convolution2d";

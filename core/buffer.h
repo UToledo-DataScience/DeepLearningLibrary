@@ -106,7 +106,7 @@ class Buffer {
     //
     // Currently only deals with the last two dimensions. 
     template <typename BDType>
-    void print();
+    void print(bool linear=false);
 };
 
 } // namespace deeplib

@@ -59,7 +59,32 @@ void basicOperations() {
     a.printStats();
 }
 
-void matrixOperations() {
+void matrixMultiplication() {
+    Allocator a;
+
+    vector<int> m1 = { 1, 1, 1,
+                       1, 1, 1,
+                       1, 1, 1 };
+
+    vector<int> m2 = { 2, 2, 2,
+                       2, 2, 2,
+                       2, 2, 2 };
+
+    vector<int> shape = { 3, 3 };
+
+    Tensor t1(m1, shape, &a);
+    Tensor t2(m2, shape, &a);
+
+    Tensor t3 = matmul(t1, t2);
+
+    t3.operate();
+    t3.print();
+    t3.uproot();
+
+    a.printStats();
+}
+
+void convolution() {
     Allocator a;
 
     vector<int> m1;
@@ -67,17 +92,18 @@ void matrixOperations() {
         m1.push_back(i+1);
 
     vector<int> m2 = { 1, 1,
-                       2, 1 };
+                       2, 1,
+                       1, 2 };
 
     vector<int> shape = { 10, 10 };
-    vector<int> shape2 = { 2, 2 };
-    vector<int>& s = shape;
-    vector<int>& s2 = shape2;
+    vector<int> shape2 = { 3, 2 };
 
-    Tensor t1 = Tensor(m1, s, &a);
-    Tensor t2 = Tensor(m2, s2, &a);
+    int strides[2] = { 2, 2 };
 
-    Tensor t3 = conv2d(t1, t2);
+    Tensor t1 = Tensor(m1, shape, &a);
+    Tensor t2 = Tensor(m2, shape2, &a);
+
+    Tensor t3 = conv2d(t1, t2, strides);
 
     t3.operate();
     t3.print();
@@ -87,5 +113,5 @@ void matrixOperations() {
 }
 
 int main() {
-    matrixOperations();
+    matrixMultiplication();
 }

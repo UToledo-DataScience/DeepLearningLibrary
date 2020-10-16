@@ -77,7 +77,7 @@ class Tensor {
 
     void setBuffer(Buffer* buf);
 
-    void print();
+    void print(bool linear=false);
 };
 
 } // namespace deeplib

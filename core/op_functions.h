@@ -1,5 +1,6 @@
 #ifndef OP_FUNCTIONS
 #define OP_FUNCTIONS
+#include <string>
 #include "core/tensor.h"
 #include "core/operations.h"
 
@@ -81,8 +82,13 @@ Tensor matmul(Tensor& t1, Tensor& t2) {
 }
 
 // TODO: padding, strides, dilation_rate
-Tensor conv2d(Tensor& image, Tensor& kernel) {
+Tensor conv2d(Tensor& image, Tensor& kernel, std::string padding, int (&strides)[2]) {
     assert(image.getDataType() == kernel.getDataType());
+
+    std::string padding_values[2] = { "same", "valid" };
+
+    assert(padding.compare(padding_values[0]) == 0 || padding.compare(padding_values[1]) == 0);
+
     std::vector<int>& image_shape = image.getShape();
     std::vector<int>& kernel_shape = kernel.getShape();
 
@@ -95,12 +101,15 @@ Tensor conv2d(Tensor& image, Tensor& kernel) {
     for (int i = 0; i < image_shape.size()-2; i++)
         new_shape.push_back(image_shape[i]);
 
-    new_shape.push_back(image_shape[image_shape.size()-2] - kernel_shape[0] + 1);
-    new_shape.push_back(image_shape[image_shape.size()-1] - kernel_shape[1] + 1);
+    new_shape.push_back(std::floor((image_shape[image_shape.size()-2] - kernel_shape[0])/strides[0]) + 1);
+    new_shape.push_back(std::floor((image_shape[image_shape.size()-1] - kernel_shape[1])/strides[1]) + 1);
+
+    for (int i : new_shape)
+        std::cout << i << std::endl;
 
     return Tensor(image, kernel,
         image.getAllocator()->newOperation(
-            new Convolution2D(image.getOperation(), kernel.getOperation())), new_shape);
+            new Convolution2D(image.getOperation(), kernel.getOperation(), padding, strides)), new_shape);
 }
 
 Tensor sqrt(Tensor& t) {

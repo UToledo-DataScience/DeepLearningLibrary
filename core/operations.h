@@ -144,8 +144,10 @@ class MatrixMultiplication : public Operation {
 };
 
 class Convolution2D : public Operation {
+    int strides_[2];
+
   public:
-    Convolution2D(Operation* p1, Operation* p2);
+    Convolution2D(Operation* p1, Operation* p2, int (&strides)[2]);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();

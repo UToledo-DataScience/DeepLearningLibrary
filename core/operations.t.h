@@ -135,9 +135,7 @@ void Convolution2D::compute(Buffer* b1, Buffer* b2) {
         padding_offset_y[1] = std::floor(static_cast<float>(kernel_shape[0] - 1) / 2);
 
         padding_offset_x[0] = std::ceil(static_cast<float>(kernel_shape[1] - 1) / 2);
-        std::cout << padding_offset_x[0] << std::endl;
         padding_offset_x[1] = std::floor(static_cast<float>(kernel_shape[1] - 1) / 2);
-        std::cout << padding_offset_x[1] << std::endl;
     }
     else {
         padded = false;

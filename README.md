@@ -1,6 +1,3 @@
-# NOTE
-This branch currently depends on graph-computation.
-
 # DeepLearningLibrary
 Mathematical computations library designed for applications in deep learning.
 

@@ -1,80 +1,245 @@
 #ifndef OPERATIONS
 #define OPERATIONS
 #include <iostream>
+#include <cmath>
+#include "core/buffer.h"
 
-template <typename OpDType>
+using std::string;
+
+namespace deeplib {
+
+class Buffer;
+class Allocator;
+
+// Abstract operation graph node class.
+//
+// Each Operation has two key functions:
+//   - Operation.derive()
+//   - Operation.operate()
+//
+// derive() is the function corresponding to the
+// derivative of that specific operation.
+// e.g. Multiplication.derive == d/dx(x * x) == x*1 + 1*x == product rule
+//
+// operate() is a recursive used to actually enact the arithmetic
+// defined by the operation.
+// e.g. Multiply.operate() == x * y,
+//      where x == Operation.parent1_ and y == Operation.parent2_
+//
+// It should be noted that Constant.operate() retrieves the actual value,
+// acting as the end condition to the recursive function
+// as newly created Tensor<T> objects have a Constant as their operation. // TODO: review this last line
+//
+// This is never to be used directly.
 class Operation {
-    protected:
-        std::string name;
-        std::string type;
+    friend class Allocator;
 
-        Operation<OpDType>* parent1;
-        Operation<OpDType>* parent2;
+  protected:
+    string name_;
+    string type_;
 
-        Placeholder<OpDType>* placeholder;
+    Operation* parent1_;
+    Operation* parent2_;
 
-    public:
-        Operation() {
-            parent1 = nullptr;
-            parent2 = nullptr;
-            placeholder = nullptr;
-        }
+    Buffer* buffer_;
 
-        Operation(Operation<OpDType>* p1, Operation<OpDType>* p2);
-        Operation(Placeholder<OpDType>* pl);
+  public:
+    Operation();
 
-        // assuming that each operation can have a max of two parents
-        virtual OpDType derive() = 0;
-        virtual OpDType operate() = 0;
+    Operation(Operation* p1, Operation* p2);
+    Operation(Buffer* buf);
 
-        std::string getType();
+    virtual void setBuffer(Buffer* buf) = 0;
+    virtual Buffer* getBuffer() = 0;
+
+    virtual void derive() = 0;
+
+    virtual Buffer* operate() = 0;
+
+    string getType();
 };
 
-// NOTE: this is only rigged for tensors with one element
-template <typename OpDType>
-class Multiplication : public Operation<OpDType> {
-    public:
-        Multiplication(Operation<OpDType>* p1, Operation<OpDType>* p2) {
-            this->parent1 = p1;
-            this->parent2 = p2;
-            this->type = "multiplication";
-        }
+class Addition : public Operation {
+  public:
+    Addition(Operation* p1, Operation* p2);
 
-        OpDType derive() {
-            OpDType a = this->parent1->operate() * this->parent2->derive();
-            OpDType b = this->parent2->operate() * this->parent1->derive();
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
 
-            return a + b;
-        }
+    void derive();
 
-        // fix
-        OpDType operate() {
-            OpDType p1, p2;
+    // NOTE: broadcasting not yet supported
+    //
+    // element-wise multiplication - no shape change
+    //template <typename OpDType>
+    Buffer* operate();
 
-            if (this->parent1 != nullptr)
-                p1 = this->parent1->operate();
-
-            if (this->parent2 != nullptr)
-                p2 = this->parent2->operate();
-
-            return p1 * p2;
-        }
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
 };
 
-template <typename OpDType>
-class Constant : public Operation<OpDType> {
-    public:
-        Constant(Placeholder<OpDType>* pl) {
-            this->placeholder = pl;
-            this->type = "constant";
-        }
+class Subtraction : public Operation {
+  public:
+    Subtraction(Operation* p1, Operation* p2);
 
-        OpDType derive() {
-            return 0;
-        }
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
 
-        OpDType operate() {
-            return this->placeholder->getIndex(0);
-        }
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
 };
+
+
+class Multiplication : public Operation {
+  public:
+    Multiplication(Operation* p1, Operation* p2);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    // NOTE: broadcasting not yet supported
+    //
+    // element-wise multiplication - no shape change
+    //template <typename OpDType>
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
+class Division : public Operation {
+  public:
+    Division(Operation* p1, Operation* p2);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
+class MatrixMultiplication : public Operation {
+  public:
+    MatrixMultiplication(Operation* p1, Operation* p2);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
+class Convolution2D : public Operation {
+    int strides_[2];
+    std::string padding_;
+
+  public:
+    Convolution2D(Operation* p1, Operation* p2, std::string padding, int (&strides)[2]);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
+class Power : public Operation {
+  public:
+    Power(Operation* p1, Operation* p2);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    // Element-wise raising to a power - no shape change
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* b1, Buffer* b2);
+};
+
+class Cast : public Operation {
+  public:
+    Cast(Operation* buf);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* buf);
+};
+
+class SquareRoot : public Operation {
+    // Tensors going through this operation can be promoted
+    // to float32 if they're signed and not a floating point tensor
+    bool promotion;
+
+  public:
+    SquareRoot(Operation* p, bool promotion=false);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* buf);
+};
+
+class Exponential : public Operation {
+  public:
+    Exponential(Operation* p);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    // Element-wise exp() function - no shape change.
+    Buffer* operate();
+
+    template <typename OpDType>
+    void compute(Buffer* buf);
+};
+
+class Constant : public Operation {
+  public:
+    Constant(Buffer* buf);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+};
+
+} // namespace deeplib
+
+#include "core/operations.t.h"
 #endif

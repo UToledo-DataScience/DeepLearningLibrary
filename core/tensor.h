@@ -1,62 +1,85 @@
 #ifndef TENSOR
 #define TENSOR
-#include <iostream>
 #include <cassert>
 #include <vector>
-#include "core/placeholder.h"
+#include <memory>
+#include "core/buffer.h"
 #include "core/operations.h"
-#include "core/utils.h"
+#include "core/data_types.h"
 
-template <typename TensorDType>
+namespace deeplib {
+
 class Tensor {
-    Placeholder<TensorDType>* placeholder;
-    std::vector<int> shape;
+    uint32_t children_;
+    std::vector<int>* shape_;
 
-    Operation<TensorDType>* operation;
+    Buffer* buffer_;
+    Allocator* allocator_;
 
-    public:
-        // fresh tensor
-        Tensor(std::vector<int> s, Allocator<TensorDType>* allocator) {
-            int total_size = 1;
-            for (int i : s) {
-                shape.push_back(i);
-                total_size *= i;
-            }
+    DataType dtype_;
 
-            placeholder = new Placeholder<TensorDType>(allocator, total_size);
-            operation = new Constant<TensorDType>(placeholder);
-        }
+    Operation* operation_;
 
-        // tensor from binary operation
-        Tensor(Tensor<TensorDType>* t1, Tensor<TensorDType>* t2, std::string op) {
-            assert(compare(t1->getShape(), t2->getShape()));
+    void incrChildren() { children_++; }
 
-            // TODO: accomodate the other operations, as well as different shapes
-            //       i.e. make better
-            
-            for (int i : t1->getShape())
-                shape.push_back(i);
+  public:
+    Tensor(std::vector<int> new_shape, DataType dt, Allocator* a);
 
-            placeholder = t1->getPlaceholder();
-            operation = new Multiplication(t1->getOperation(), t2->getOperation());
-        }
+    // Fresh tensor initialized using a 1D set of values.
+    // NOTE: This will have to be changed.
+    //       Tensors initialized from a set of values will have to happen
+    //       some other way. Eigen tensors/matrices?
+    Tensor(std::vector<int> values, std::vector<int> s, Allocator* a);
 
-        // TODO: REFERENCE COUNTS
-        ~Tensor() {
-            //delete placeholder;
-            //delete operation;
-        }
+    // Tensor constructed from a binary operation. The operation given
+    // is what this tensors operation will be.
+    Tensor(Tensor& t1, Tensor& t2, Operation* op);
 
-        TensorDType operate() { return operation->operate(); }
+    // Forced allocation of a new Buffer using a new shape. Currently used for matrix operations
+    // which yield a differently shaped output.
+    Tensor(Tensor& t1, Tensor& t2, Operation* op, std::vector<int> new_shape);
 
-        Placeholder<TensorDType>* getPlaceholder() { return placeholder; }
+    // Tensor constructed from a unary operation.
+    Tensor(Tensor& t, Operation* op);
 
-        std::vector<int>& getShape() { return shape; }
+    // Constructor for implicit casts from operations.
+    Tensor(Tensor& t, Operation* op, DataType new_dtype);
 
-        Operation<TensorDType>* getOperation() { return operation; }
+    ~Tensor();
 
-        void print() {
-            placeholder->print(shape);
-        }
+    // Operates the tensor, bringing the data in the buffer up to speed
+    // at the current operation. 
+    // NOTE: This overwrites buffers.
+    // TODO: How directly (or indirectly) will the user interact with this?
+    void operate();
+
+    // Deallocate this tensor and ALL of it's ancestors.
+    // Once this is called, all affected tensors will be unusable.
+    //
+    // TODO: What to do about orphaned operations?
+    void uproot();
+
+    // Getters and setters.
+
+    std::vector<int>& getShape();
+
+    uint64_t getSize();
+
+    uint32_t getChildren();
+
+    Operation* getOperation();
+
+    DataType getDataType();
+
+    Allocator* getAllocator();
+
+    Buffer* getBuffer();
+
+    void setBuffer(Buffer* buf);
+
+    void print(bool linear=false);
 };
+
+} // namespace deeplib
+
 #endif

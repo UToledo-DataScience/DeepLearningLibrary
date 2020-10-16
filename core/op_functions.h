@@ -81,13 +81,13 @@ Tensor matmul(Tensor& t1, Tensor& t2) {
             new MatrixMultiplication(t1.getOperation(), t2.getOperation())), new_shape);
 }
 
-// TODO: padding, strides, dilation_rate
+// TODO: dilation_rate
 Tensor conv2d(Tensor& image, Tensor& kernel, std::string padding, int (&strides)[2]) {
     assert(image.getDataType() == kernel.getDataType());
 
-    std::string padding_values[2] = { "same", "valid" };
+    assert(strides[0] >= 0 && strides[1] >= 0);
 
-    assert(padding.compare(padding_values[0]) == 0 || padding.compare(padding_values[1]) == 0);
+    std::string padding_values[2] = { "same", "valid" };
 
     std::vector<int>& image_shape = image.getShape();
     std::vector<int>& kernel_shape = kernel.getShape();
@@ -101,11 +101,20 @@ Tensor conv2d(Tensor& image, Tensor& kernel, std::string padding, int (&strides)
     for (int i = 0; i < image_shape.size()-2; i++)
         new_shape.push_back(image_shape[i]);
 
-    new_shape.push_back(std::floor((image_shape[image_shape.size()-2] - kernel_shape[0])/strides[0]) + 1);
-    new_shape.push_back(std::floor((image_shape[image_shape.size()-1] - kernel_shape[1])/strides[1]) + 1);
-
-    for (int i : new_shape)
-        std::cout << i << std::endl;
+    // NOTE: strides override padding
+    if (!padding.compare(padding_values[0]) && strides[0] == 1 && strides[1] == 1) {
+        new_shape.push_back(image_shape.rbegin()[1]);
+        new_shape.push_back(image_shape.back());
+    }
+    else if (!padding.compare(padding_values[1]) || strides[0] > 1 || strides[1] > 1) {
+        new_shape.push_back(std::floor((image_shape.rbegin()[1] - kernel_shape[0])/strides[0]) + 1);
+        new_shape.push_back(std::floor((image_shape.back() - kernel_shape[1])/strides[1]) + 1);
+    }
+    else {
+        // Please find a better way of handling this.
+        std::cout << "ERROR: Invalid padding value. Must be either \"same\" or \"valid\"" << std::endl;
+        assert(false);
+    }
 
     return Tensor(image, kernel,
         image.getAllocator()->newOperation(

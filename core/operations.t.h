@@ -114,16 +114,8 @@ void MatrixMultiplication::compute(Buffer* b1, Buffer* b2) {
 }
 
 // NOTE: kernel shape (i.e. b2->getShape()) will always be ND for ConvolutionND
-// TODO: Investigate why TensorFlow interprets the same kernel
-//       as one flipping along the vertical and horizontal axes.
 template <typename OpDType>
 void Convolution2D::compute(Buffer* b1, Buffer* b2) {
-    int (&strides)[2] = this->strides_;
-    int padding_offset_y[2], padding_offset_x[2];
-    if (this->padding.compare("same")) {
-        padding_offset_y[0] = std::ceiling((kernel_shape[0] - 1) / 2);
-        padding_offset_y[1] = std::floor((kernel_shape[0] - 1) / 2);
-
     std::vector<int>& b1_shape = b1->getShape();
     std::vector<int> image_shape;
     for (int s = b1_shape.size()-2; s < b1_shape.size(); s++)
@@ -132,7 +124,30 @@ void Convolution2D::compute(Buffer* b1, Buffer* b2) {
     std::vector<int>& kernel_shape = b2->getShape();
     std::vector<int>& output_shape = this->buffer_->getShape();
 
-    // NOTE: Fix for shapes > 2 !
+    int (&strides)[2] = this->strides_;
+
+    bool padded;
+    int padding_offset_y[2], padding_offset_x[2];
+    if (!this->padding_.compare("same")) {
+        padded = true;
+
+        padding_offset_y[0] = std::ceil(static_cast<float>(kernel_shape[0] - 1) / 2);
+        padding_offset_y[1] = std::floor(static_cast<float>(kernel_shape[0] - 1) / 2);
+
+        padding_offset_x[0] = std::ceil(static_cast<float>(kernel_shape[1] - 1) / 2);
+        std::cout << padding_offset_x[0] << std::endl;
+        padding_offset_x[1] = std::floor(static_cast<float>(kernel_shape[1] - 1) / 2);
+        std::cout << padding_offset_x[1] << std::endl;
+    }
+    else {
+        padded = false;
+
+        padding_offset_y[0] = 0;
+        padding_offset_y[1] = 0;
+
+        padding_offset_x[0] = 0;
+        padding_offset_x[1] = 0;
+    }
 
     int matrix_count = 1;
     int matrix_sizes[3] = { b1_shape[b1_shape.size()-2]*b1_shape[b1_shape.size()-1],
@@ -147,11 +162,11 @@ void Convolution2D::compute(Buffer* b1, Buffer* b2) {
                                  matrix_sizes[1]*i,
                                  matrix_sizes[2]*i };
 
-        // oy and ox refer to the position of the top left corner of the kernel being slid across the image.
-        for (int oy = 0; oy < image_shape[0]-kernel_shape[0]+1; oy+=strides[0]) {
-            for (int ox = 0; ox < image_shape[1]-kernel_shape[1]+1; ox+=strides[1]) {
+        // oy and ox refer to the position of the top left corner of the kernel as it slides across the image.
+        for (int oy = 0-padding_offset_y[0]; oy < image_shape[0]-kernel_shape[0]+1+padding_offset_y[1]; oy+=strides[0]) {
+            for (int ox = 0-padding_offset_x[0]; ox < image_shape[1]-kernel_shape[1]+1+padding_offset_x[1]; ox+=strides[1]) {
                 OpDType local_sum = 0;
-
+                // The actual computation between the kernel and the image.
                 // Indices prefixed with k refer to the kernel, i refer to the image.
                 for (int ky = kernel_shape[0]-1, iy = oy;
                      ky > -1, iy < oy+kernel_shape[0];
@@ -159,16 +174,33 @@ void Convolution2D::compute(Buffer* b1, Buffer* b2) {
                     for (int kx = kernel_shape[1]-1, ix = ox;
                          kx > -1, ix < ox+kernel_shape[1];
                          kx--, ix++) {
-                        // NOTE: This needs changed for shapes > 2 !
-                        OpDType ik1 = b1->getIndex<OpDType>(start_indices[0]+iy*image_shape[1]+ix);
-                        OpDType ik2 = b2->getIndex<OpDType>(start_indices[1]+ky*kernel_shape[1]+kx);
+                        int image_index = start_indices[0]+iy*image_shape[1]+ix;
+                        int kernel_index = start_indices[1]+ky*kernel_shape[1]+kx;
+
+                        bool padding_condition_y = (iy < 0 || iy >= image_shape[0]);
+                        bool padding_condition_x = (ix < 0 || ix >= image_shape[1]);
+                        bool padding_condition = padding_condition_y || padding_condition_x;
+
+                        if (padding_condition)
+                            continue;
+
+                        OpDType ik1 = b1->getIndex<OpDType>(image_index);
+                        OpDType ik2 = b2->getIndex<OpDType>(kernel_index);
+
                         local_sum += ik1 * ik2;
                     }
                 }
 
                 int out_y, out_x;
-                out_y = std::floor(oy / strides[0]);
-                out_x = std::floor(ox / strides[1]);
+                if (padded && strides[0] == 1 && strides[1] == 1) {
+                    out_y = oy + padding_offset_y[0];
+                    out_x = ox + padding_offset_x[0];
+                }
+                else {
+                    out_y = std::floor(oy / strides[0]);
+                    out_x = std::floor(ox / strides[1]);
+                }
+
                 this->buffer_->setIndex<OpDType>(start_indices[2]+out_y*output_shape[1]+out_x, local_sum);
             }
         }

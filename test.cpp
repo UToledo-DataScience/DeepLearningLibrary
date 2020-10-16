@@ -91,19 +91,19 @@ void convolution() {
     for (int i = 0; i < 100; i++)
         m1.push_back(i+1);
 
-    vector<int> m2 = { 1, 1,
-                       2, 1,
-                       1, 2 };
+    vector<int> m2 = { 1, 1, 2,
+                       2, 2, 2,
+                       1, 1, 1 };
 
     vector<int> shape = { 10, 10 };
-    vector<int> shape2 = { 3, 2 };
+    vector<int> shape2 = { 3, 3 };
 
-    int strides[2] = { 2, 2 };
+    int strides[2] = { 3, 3 };
 
     Tensor t1 = Tensor(m1, shape, &a);
     Tensor t2 = Tensor(m2, shape2, &a);
 
-    Tensor t3 = conv2d(t1, t2, strides);
+    Tensor t3 = conv2d(t1, t2, "valid", strides);
 
     t3.operate();
     t3.print();
@@ -113,5 +113,5 @@ void convolution() {
 }
 
 int main() {
-    matrixMultiplication();
+    convolution();
 }

@@ -7,12 +7,10 @@ Mathematical computations library designed for applications in deep learning.
 NOTE: the library is currently not functional. What's currently here is still very heavy in development.
 
 ## TODO
-- Basic mathematical operations aside from multiplication
-- Computation needs a LOT of work to accommodate different shapes
 - Gradient framework
+- More comprehensive set of operations
 - GPU acceleration
-- Unit testing
-- Styling standards
+- **Testing framework!**
 - Organization e.g. class headers having declarations, class `.cpp`s having definitions
 - Better framework around data types
 

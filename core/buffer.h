@@ -29,6 +29,7 @@ class Allocator;
 class Buffer {
     friend class Allocator;
     friend class Cast; // For ease in changing buffer data types.
+    friend class Tensor;
 
     void* buffer_data_;
 
@@ -52,7 +53,7 @@ class Buffer {
     Buffer();
 
     // Custom copy constructor.
-    Buffer(Buffer* buf);
+    Buffer(Buffer* buf, bool copy_elements=true);
 
     // Custom copy constructor for implicit cast-conversions.
     // NOTE: This constructor does not copy buf->buffer_data_, it only 

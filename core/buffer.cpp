@@ -8,7 +8,7 @@ namespace deeplib {
 
 Buffer::Buffer() {}
 
-Buffer::Buffer(Buffer* buf) {
+Buffer::Buffer(Buffer* buf, bool copy_elements) {
     buffer_data_ = nullptr;
 
     shape_ = buf->getShape();
@@ -22,7 +22,9 @@ Buffer::Buffer(Buffer* buf) {
     allocator_ = buf->getAllocator();
 
     initialize();
-    memcpy(buffer_data_, buf_ptr, total_size_);
+
+    if (copy_elements)
+        memcpy(buffer_data_, buf_ptr, total_size_);
 }
 
 Buffer::Buffer(Buffer* buf, DataType dtype) {

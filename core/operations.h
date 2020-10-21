@@ -33,15 +33,24 @@ class Allocator;
 // This is never to be used directly.
 class Operation {
     friend class Allocator;
+    friend class Tensor;
 
   protected:
+    bool computed_;
+
     string name_;
     string type_;
+
+    // Indicates how many arguments the operation takes
+    // e.g. binary, unary, ternary, etc.
+    int ary_;
 
     Operation* parent1_;
     Operation* parent2_;
 
     Buffer* buffer_;
+    // Buffer specifically used for gradients.
+    Buffer* gradient_output_buffer_;
 
   public:
     Operation();
@@ -55,8 +64,14 @@ class Operation {
     virtual void derive() = 0;
 
     virtual Buffer* operate() = 0;
+    virtual void operate(Buffer* b1, Buffer* b2) = 0;
+    virtual void operate(Buffer* b1) = 0;
+
+    Buffer* gradient(Operation* source);
 
     string getType();
+
+    void setName(std::string name);
 };
 
 class Addition : public Operation {
@@ -68,11 +83,9 @@ class Addition : public Operation {
 
     void derive();
 
-    // NOTE: broadcasting not yet supported
-    //
-    // element-wise multiplication - no shape change
-    //template <typename OpDType>
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -88,6 +101,8 @@ class Subtraction : public Operation {
     void derive();
 
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -95,6 +110,9 @@ class Subtraction : public Operation {
 
 
 class Multiplication : public Operation {
+  protected:
+    Buffer* gradient_computation_buffer_;
+
   public:
     Multiplication(Operation* p1, Operation* p2);
 
@@ -103,14 +121,15 @@ class Multiplication : public Operation {
 
     void derive();
 
-    // NOTE: broadcasting not yet supported
-    //
-    // element-wise multiplication - no shape change
-    //template <typename OpDType>
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
+
+    //template <typename OpDType>
+    //void gradientCompute(Buffer* b1, Buffer* b2, Buffer* out);
 };
 
 class Division : public Operation {
@@ -123,6 +142,8 @@ class Division : public Operation {
     void derive();
 
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -138,6 +159,8 @@ class MatrixMultiplication : public Operation {
     void derive();
 
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -156,6 +179,8 @@ class Convolution2D : public Operation {
     void derive();
 
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -170,8 +195,9 @@ class Power : public Operation {
 
     void derive();
 
-    // Element-wise raising to a power - no shape change
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -187,6 +213,8 @@ class Cast : public Operation {
     void derive();
 
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* buf);
@@ -206,6 +234,8 @@ class SquareRoot : public Operation {
     void derive();
 
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* buf);
@@ -222,6 +252,8 @@ class Exponential : public Operation {
 
     // Element-wise exp() function - no shape change.
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 
     template <typename OpDType>
     void compute(Buffer* buf);
@@ -237,6 +269,8 @@ class Constant : public Operation {
     void derive();
 
     Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
 };
 
 } // namespace deeplib

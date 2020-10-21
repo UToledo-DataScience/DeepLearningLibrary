@@ -1,6 +1,7 @@
-#include <cassert>
+#include <stack>
 #include <vector>
 #include <memory>
+#include <cassert>
 #include "core/data_types.h"
 #include "core/tensor.h"
 #include "core/buffer.h"
@@ -134,10 +135,92 @@ Tensor::Tensor(Tensor& t, Operation* op, DataType new_dtype) {
     operation_->setBuffer(buffer_);
 }
 
+Tensor::Tensor(Tensor& t) {
+    children_ = t.getChildren();
+    allocator_ = t.getAllocator();
+    buffer_ = t.getBuffer();
+    dtype_ = t.getDataType();
+    operation_ = t.getOperation();
+}
+
 Tensor::~Tensor() {}
 
+// Helper for Tensor::operate()
+bool Tensor::isConstant(Operation* op) {
+    return !op->type_.compare("constant");
+}
+
+bool Tensor::isNary(Operation* op, int n) {
+    return op->ary_ == n;
+}
+
+// NOTE: Only supports up to binary operations.
+// This should probably be moved.
 void Tensor::operate() {
-    operation_->operate();
+    if (isConstant(this->operation_)) {
+        this->operation_->operate();
+        return;
+    }
+    else {
+        std::stack<Operation*> operation_buffer1;
+        std::stack<Operation*> operation_buffer2;
+        std::stack<Operation*> computed_operations;
+        Operation* op = this->operation_;
+        operation_buffer1.push(op);
+        while (operation_buffer1.size() > 0) {
+            op = operation_buffer1.top();
+            operation_buffer2.push(op);
+            operation_buffer1.pop();
+
+            if (isNary(op, 2)) {
+                if (op->parent1_)
+                    operation_buffer1.push(op->parent1_);
+
+                if (op->parent2_)
+                    operation_buffer1.push(op->parent2_);
+            }
+            else {
+                if (op->parent1_)
+                    operation_buffer1.push(op->parent1_);
+            }
+        }
+
+        // This can probably be cleaned up.
+        while (operation_buffer2.size() > 0) {
+            Operation* buf1_top = operation_buffer1.size() > 0 ? operation_buffer1.top() : 0;
+            Operation* buf2_top = operation_buffer2.top();
+            Operation* comp_top = computed_operations.size() > 0 ? computed_operations.top() : 0;
+            if (isConstant(buf2_top)) {
+                computed_operations.push(buf2_top);
+                operation_buffer2.pop();
+            }
+            else if (comp_top) {
+                if (isNary(buf2_top, 1) && (isConstant(comp_top) || comp_top->computed_)) {
+                    buf2_top->operate(comp_top->buffer_);
+                    computed_operations.pop();
+                    computed_operations.push(buf2_top);
+                    operation_buffer2.pop();
+
+                    continue;
+                }
+                if (buf2_top) {
+                    if (isNary(buf2_top, 2) && computed_operations.size() > 1) {
+                        Operation* op1 = computed_operations.top();
+                        computed_operations.pop();
+                        Operation* op2 = computed_operations.top();
+                        computed_operations.pop();
+
+                        buf2_top->operate(op2->buffer_, op1->buffer_);
+
+                        computed_operations.push(buf2_top);
+                        operation_buffer2.pop();
+
+                        continue;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void Tensor::uproot() {
@@ -175,6 +258,10 @@ Buffer* Tensor::getBuffer() {
 void Tensor::setBuffer(Buffer* buf) {
     buffer_ = buf;
     operation_->setBuffer(buf);
+}
+
+void Tensor::setName(std::string name) {
+    operation_->setName(name);
 }
 
 void Tensor::print(bool linear) {

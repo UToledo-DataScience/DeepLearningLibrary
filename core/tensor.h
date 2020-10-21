@@ -45,12 +45,17 @@ class Tensor {
     // Constructor for implicit casts from operations.
     Tensor(Tensor& t, Operation* op, DataType new_dtype);
 
+    // Copy constructor.
+    Tensor(Tensor& t);
+
     ~Tensor();
+
+    bool isConstant(Operation* op);
+
+    bool isNary(Operation* op, int n);
 
     // Operates the tensor, bringing the data in the buffer up to speed
     // at the current operation. 
-    // NOTE: This overwrites buffers.
-    // TODO: How directly (or indirectly) will the user interact with this?
     void operate();
 
     // Deallocate this tensor and ALL of it's ancestors.
@@ -76,6 +81,8 @@ class Tensor {
     Buffer* getBuffer();
 
     void setBuffer(Buffer* buf);
+
+    void setName(std::string name);
 
     void print(bool linear=false);
 };

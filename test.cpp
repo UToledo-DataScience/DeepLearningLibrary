@@ -9,12 +9,25 @@ using std::cout; using std::endl; using std::vector;
 using namespace std::chrono;
 using namespace deeplib;
 
+void eval(Tensor& t) {
+    auto time1 = high_resolution_clock::now();
+    t.operate();
+    auto time2 = high_resolution_clock::now();
+
+    cout << "Execution time: "
+         << duration_cast<microseconds>(time2 - time1).count() << " microseconds"
+         << endl;
+
+    t.print();
+    t.uproot();
+}
+
 // Operations displayed below are := f(x, y) = (x + ((exp(x * y))^y * x)^1 - y) / x)
 // where x == { 2, 2, ... } and y == { 3, 3, ... }
 void basicOperations() {
     Allocator a;
 
-    int size = 10;
+    int size = 5;
 
     vector<int> v11;
     vector<int> v22;
@@ -38,23 +51,16 @@ void basicOperations() {
 
     t3 = exp(t3);
     t3 = multiply(t3, t1); // Replacing variables maintains the graph.
-    t3 = power(t3, tConst); // Broadcasting with constants.
-    t3 = add(t3, t1); // Reuse of tensors maintains the graph (this is the third use of t1).
-    t3 = sub(t3, t2);
-    t3 = divide(t3, t1);
-    t3 = sqrt(t3);
-    t3 = add(t3, t1);
+    Tensor t4 = power(t3, tConst); // Broadcasting with constants.
+    t4 = add(t4, t1); // Reuse of tensors maintains the graph (this is the third use of t1).
+    t4 = sub(t4, t2);
+    t4 = divide(t4, t1);
+    Tensor t5 = sqrt(t1);
+    Tensor t6 = exp(t2);
+    Tensor t7 = add(t5, t6);
+    Tensor t8 = divide(t4, t7);
 
-    auto time1 = high_resolution_clock::now();
-    t3.operate();
-    auto time2 = high_resolution_clock::now();
-
-    cout << "Execution time: "
-         << duration_cast<microseconds>(time2 - time1).count() << " microseconds"
-         << endl;
-
-    t3.print();
-    t3.uproot();
+    eval(t8);
 
     a.printStats();
 }
@@ -113,5 +119,5 @@ void convolution() {
 }
 
 int main() {
-    convolution();
+    basicOperations();
 }

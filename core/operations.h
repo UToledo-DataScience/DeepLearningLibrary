@@ -56,7 +56,7 @@ class Operation {
     Operation();
 
     Operation(Operation* p1, Operation* p2);
-    Operation(Buffer* buf);
+    Operation(Operation* source, Allocator* allocator);
 
     virtual void setBuffer(Buffer* buf) = 0;
     virtual Buffer* getBuffer() = 0;
@@ -67,7 +67,13 @@ class Operation {
     virtual void operate(Buffer* b1, Buffer* b2) = 0;
     virtual void operate(Buffer* b1) = 0;
 
-    Buffer* gradient(Operation* source);
+    // Function for cloning an operation
+    // without having to specify subclass.
+    virtual void createSelf(Operation* source, Allocator* a) = 0;
+
+    // Returns a subgraph of operations describing
+    // the operation's gradient function.
+    Operation* gradient();
 
     string getType();
 
@@ -77,6 +83,7 @@ class Operation {
 class Addition : public Operation {
   public:
     Addition(Operation* p1, Operation* p2);
+    Addition(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -86,6 +93,8 @@ class Addition : public Operation {
     Buffer* operate();
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -94,6 +103,7 @@ class Addition : public Operation {
 class Subtraction : public Operation {
   public:
     Subtraction(Operation* p1, Operation* p2);
+    Subtraction(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -103,6 +113,8 @@ class Subtraction : public Operation {
     Buffer* operate();
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -115,6 +127,7 @@ class Multiplication : public Operation {
 
   public:
     Multiplication(Operation* p1, Operation* p2);
+    Multiplication(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -125,16 +138,16 @@ class Multiplication : public Operation {
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
 
+    void createSelf(Operation* source, Allocator* allocator);
+
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
-
-    //template <typename OpDType>
-    //void gradientCompute(Buffer* b1, Buffer* b2, Buffer* out);
 };
 
 class Division : public Operation {
   public:
     Division(Operation* p1, Operation* p2);
+    Division(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -144,6 +157,8 @@ class Division : public Operation {
     Buffer* operate();
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -152,6 +167,7 @@ class Division : public Operation {
 class MatrixMultiplication : public Operation {
   public:
     MatrixMultiplication(Operation* p1, Operation* p2);
+    MatrixMultiplication(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -161,6 +177,8 @@ class MatrixMultiplication : public Operation {
     Buffer* operate();
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -172,6 +190,7 @@ class Convolution2D : public Operation {
 
   public:
     Convolution2D(Operation* p1, Operation* p2, std::string padding, int (&strides)[2]);
+    Convolution2D(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -181,6 +200,8 @@ class Convolution2D : public Operation {
     Buffer* operate();
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -189,6 +210,7 @@ class Convolution2D : public Operation {
 class Power : public Operation {
   public:
     Power(Operation* p1, Operation* p2);
+    Power(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -198,6 +220,8 @@ class Power : public Operation {
     Buffer* operate();
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
 
     template <typename OpDType>
     void compute(Buffer* b1, Buffer* b2);
@@ -206,6 +230,7 @@ class Power : public Operation {
 class Cast : public Operation {
   public:
     Cast(Operation* buf);
+    Cast(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -215,6 +240,8 @@ class Cast : public Operation {
     Buffer* operate();
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
 
     template <typename OpDType>
     void compute(Buffer* buf);
@@ -227,6 +254,7 @@ class SquareRoot : public Operation {
 
   public:
     SquareRoot(Operation* p, bool promotion=false);
+    SquareRoot(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -237,6 +265,8 @@ class SquareRoot : public Operation {
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
 
+    void createSelf(Operation* source, Allocator* allocator);
+
     template <typename OpDType>
     void compute(Buffer* buf);
 };
@@ -244,6 +274,7 @@ class SquareRoot : public Operation {
 class Exponential : public Operation {
   public:
     Exponential(Operation* p);
+    Exponential(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -255,6 +286,8 @@ class Exponential : public Operation {
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
 
+    void createSelf(Operation* source, Allocator* allocator);
+
     template <typename OpDType>
     void compute(Buffer* buf);
 };
@@ -262,6 +295,7 @@ class Exponential : public Operation {
 class Constant : public Operation {
   public:
     Constant(Buffer* buf);
+    Constant(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();
@@ -271,6 +305,8 @@ class Constant : public Operation {
     Buffer* operate();
     void operate(Buffer* b1, Buffer* b2);
     void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
 };
 
 } // namespace deeplib

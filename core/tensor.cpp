@@ -30,7 +30,7 @@ Tensor::Tensor(std::vector<int> values, std::vector<int> shape, Allocator* a) {
     operation_ = allocator_->newOperation(new Constant(buffer_));
 }
 
-Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op) {
+Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op, bool dynamic) {
     children_ = 0;
 
     // NOTE: Since the tensor resulting from this operation will
@@ -74,7 +74,7 @@ Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op) {
             t2.incrChildren();
         }
         else {
-            buffer_ = t1.getBuffer();
+            buffer_ = allocator_->newBuffer(new Buffer(t1.getBuffer()));
             t1.incrChildren();
         }
     }
@@ -86,7 +86,7 @@ Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op) {
             t2.incrChildren();
         }
         else {
-            buffer_ = t2.getBuffer();
+            buffer_ = allocator_->newBuffer(new Buffer(t2.getBuffer()));
             t2.incrChildren();
         }
     }
@@ -95,9 +95,20 @@ Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op) {
     dtype_ = t1.getDataType();
     operation_ = op;
     operation_->setBuffer(buffer_);
+    dynamic_ = dynamic;
+
+    if (dynamic_) {
+        if (t1.operation_->computed_)
+            t1.operate();
+
+        if (t2.operation_->computed_)
+            t2.operate();
+
+        this->operation_->operate(t1.buffer_, t2.buffer_);
+    }
 }
 
-Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op, std::vector<int> new_shape) {
+Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op, std::vector<int> new_shape, bool dynamic) {
     children_ = 0;
 
     allocator_ = t1.getAllocator();
@@ -105,34 +116,58 @@ Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op, std::vector<int> new_shape
     dtype_ = t1.getDataType();
     operation_ = op;
     operation_->setBuffer(buffer_);
+    dynamic_ = dynamic;
+
+    if (dynamic_) {
+        if (t1.operation_->computed_)
+            t1.operate();
+
+        if (t2.operation_->computed_)
+            t2.operate();
+
+        this->operation_->operate(t1.buffer_, t2.buffer_);
+    }
 }
 
-Tensor::Tensor(Tensor& t, Operation* op) {
+Tensor::Tensor(Tensor& t, Operation* op, bool dynamic) {
     children_ = 0;
     t.incrChildren();
 
     allocator_ = t.getAllocator();
-    buffer_ = t.getBuffer();
+    buffer_ = allocator_->newBuffer(new Buffer(t.getBuffer()));
     dtype_ = t.getDataType();
     operation_ = op;
     operation_->setBuffer(buffer_);
+    dynamic_ = dynamic;
+
+    if (dynamic_) {
+        if (t.operation_->computed_)
+            t.operate();
+
+        this->operation_->operate(t.buffer_);
+    }
 }
 
-Tensor::Tensor(Tensor& t, Operation* op, DataType new_dtype) {
+Tensor::Tensor(Tensor& t, Operation* op, DataType new_dtype, bool dynamic) {
     children_ = 0;
     t.incrChildren();
 
     allocator_ = t.getAllocator();
 
     // TODO: Check to see if previous buffer is smaller or larger in data type size.
-    //if (t.getBuffer()->getDataType() < )
     buffer_ = allocator_->newBuffer(new Buffer(t.getBuffer(), new_dtype));
-    //else
-    //    buffer_ = t.getBuffer();
 
     dtype_ = new_dtype;
     operation_ = op;
     operation_->setBuffer(buffer_);
+    dynamic_ = dynamic;
+
+    if (dynamic) {
+        if (!t.operation_->computed_)
+            t.operate();
+
+        this->operation_->operate(t.buffer_);
+    }
 }
 
 Tensor::Tensor(Tensor& t) {
@@ -190,7 +225,7 @@ void Tensor::operate() {
             Operation* buf1_top = operation_buffer1.size() > 0 ? operation_buffer1.top() : 0;
             Operation* buf2_top = operation_buffer2.top();
             Operation* comp_top = computed_operations.size() > 0 ? computed_operations.top() : 0;
-            if (isConstant(buf2_top)) {
+            if (isConstant(buf2_top) || buf2_top->computed_) {
                 computed_operations.push(buf2_top);
                 operation_buffer2.pop();
             }
@@ -203,25 +238,42 @@ void Tensor::operate() {
 
                     continue;
                 }
-                if (buf2_top) {
-                    if (isNary(buf2_top, 2) && computed_operations.size() > 1) {
-                        Operation* op1 = computed_operations.top();
-                        computed_operations.pop();
-                        Operation* op2 = computed_operations.top();
-                        computed_operations.pop();
+                if (isNary(buf2_top, 2) && computed_operations.size() > 1) {
+                    Operation* op1 = computed_operations.top();
+                    computed_operations.pop();
+                    Operation* op2 = computed_operations.top();
+                    computed_operations.pop();
 
-                        buf2_top->operate(op2->buffer_, op1->buffer_);
+                    buf2_top->operate(op2->buffer_, op1->buffer_);
 
-                        computed_operations.push(buf2_top);
-                        operation_buffer2.pop();
+                    computed_operations.push(buf2_top);
+                    operation_buffer2.pop();
 
-                        continue;
-                    }
+                    continue;
                 }
+            }
+            else {
+                std::cerr << "ERROR in graph traversal: What happened?" << std::endl;
+                assert(false);
             }
         }
     }
 }
+
+/*Tensor Tensor::gradient(Tensor& target) {
+    Buffer* target_id = target.buffer_;
+
+    std::stack<Operation*> traversal_graph;
+
+    Operation* current_op = this->operation_;
+    traversal_graph.push(current_op);
+    while (traversal_graph.size() > 0) {
+        current_op = traversal_graph.top();
+        traversal_graph.pop();
+
+        if (current_op->parent1_->buffer_ == target_id) {
+
+}*/
 
 void Tensor::uproot() {
     allocator_->uprootOperation(operation_);

@@ -7,6 +7,9 @@ using std::string;
 
 namespace deeplib {
 
+// TODO: Please rethink how Operations are handled. Continuing in this manner
+//       will be the death to any sort of maintainability if we don't clean up.
+
 //-----------------------------------\\
 // class Operation;                  \\
 //-----------------------------------\\
@@ -55,6 +58,16 @@ Addition::Addition(Operation* p1, Operation* p2) {
     this->ary_ = 2;
 }
 
+Addition::Addition(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_addition"; // Are we ever going to use this->name_?
+    this->type_ = "addition";
+    this->ary_ = 2;
+}
+
 void Addition::setBuffer(Buffer* buf) { this->buffer_ = buf; }
 
 Buffer* Addition::getBuffer() { return this->buffer_; }
@@ -93,6 +106,10 @@ void Addition::operate(Buffer* b1) {
     assert(false);
 }
 
+void Addition::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Addition(source, allocator));
+}
+
 //-----------------------------------\\
 // class Subtraction;                \\
 //-----------------------------------\\
@@ -103,6 +120,16 @@ Subtraction::Subtraction(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->name_ = "unnamed_subtraction";
+    this->type_ = "subtraction";
+    this->ary_ = 2;
+}
+
+Subtraction::Subtraction(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_subtraction"; // Are we ever going to use this->name_?
     this->type_ = "subtraction";
     this->ary_ = 2;
 }
@@ -145,6 +172,10 @@ void Subtraction::operate(Buffer* b1) {
     assert(false);
 }
 
+void Subtraction::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Subtraction(source, allocator));
+}
+
 //-----------------------------------\\
 // class Multiplication;             \\
 //-----------------------------------\\
@@ -156,6 +187,16 @@ Multiplication::Multiplication(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->name_ = "unnamed_multiplication";
+    this->type_ = "multiplication";
+    this->ary_ = 2;
+}
+
+Multiplication::Multiplication(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_multiplication"; // Are we ever going to use this->name_?
     this->type_ = "multiplication";
     this->ary_ = 2;
 }
@@ -199,6 +240,10 @@ void Multiplication::operate(Buffer* b1) {
     assert(false);
 }
 
+void Multiplication::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Multiplication(source, allocator));
+}
+
 /*Buffer* Multiplication::gradient(Buffer* b1, Buffer* b2, Buffer* grad1, Buffer* grad2) {
     if (!this->computed_)
         this->buffer_ = this->operate();
@@ -221,6 +266,16 @@ Division::Division(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->name_ = "unnamed_division";
+    this->type_ = "division";
+    this->ary_ = 2;
+}
+
+Division::Division(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_division"; // Are we ever going to use this->name_?
     this->type_ = "division";
     this->ary_ = 2;
 }
@@ -263,6 +318,10 @@ void Division::operate(Buffer* b1) {
     assert(false);
 }
 
+void Division::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Division(source, allocator));
+}
+
 //-----------------------------------\\
 // class MatrixMultiplication;       \\
 //-----------------------------------\\
@@ -273,6 +332,16 @@ MatrixMultiplication::MatrixMultiplication(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->name_ = "unnamed_matrix_multiplication";
+    this->type_ = "matrix_multiplication";
+    this->ary_ = 2;
+}
+
+MatrixMultiplication::MatrixMultiplication(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_matrix_multiplication"; // Are we ever going to use this->name_?
     this->type_ = "matrix_multiplication";
     this->ary_ = 2;
 }
@@ -310,6 +379,10 @@ void MatrixMultiplication::operate(Buffer* b1) {
     assert(false);
 }
 
+void MatrixMultiplication::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new MatrixMultiplication(source, allocator));
+}
+
 //-----------------------------------\\
 // class Convolution2D;              \\
 //-----------------------------------\\
@@ -323,6 +396,20 @@ Convolution2D::Convolution2D(Operation* p1, Operation* p2, std::string padding, 
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->name_ = "unnamed_convolution2d";
+    this->type_ = "convolution2d";
+    this->ary_ = 2;
+}
+
+Convolution2D::Convolution2D(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    // TODO
+    //this->padding_ = source->padding_;
+    //this->strides_[0] = source->strides_[0];
+    //this->strides_[1] = source->strides_[1];
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_convolution2d"; // Are we ever going to use this->name_?
     this->type_ = "convolution2d";
     this->ary_ = 2;
 }
@@ -360,6 +447,10 @@ void Convolution2D::operate(Buffer* b1) {
     assert(false);
 }
 
+void Convolution2D::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Convolution2D(source, allocator));
+}
+
 //-----------------------------------\\
 // class Power;                      \\
 //-----------------------------------\\
@@ -369,6 +460,16 @@ Power::Power(Operation* p1, Operation* p2) {
     this->parent1_ = p1;
     this->parent2_ = p2;
     this->name_ = "unnamed_power";
+    this->type_ = "power";
+    this->ary_ = 2;
+}
+
+Power::Power(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_power"; // Are we ever going to use this->name_?
     this->type_ = "power";
     this->ary_ = 2;
 }
@@ -409,6 +510,10 @@ void Power::operate(Buffer* b1) {
     assert(false);
 }
 
+void Power::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Power(source, allocator));
+}
+
 //-----------------------------------\\
 // class Cast;                       \\
 //-----------------------------------\\
@@ -418,6 +523,16 @@ Cast::Cast(Operation* p1) {
     this->parent1_ = p1;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_cast";
+    this->type_ = "cast";
+    this->ary_ = 1;
+}
+
+Cast::Cast(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_cast"; // Are we ever going to use this->name_?
     this->type_ = "cast";
     this->ary_ = 1;
 }
@@ -461,6 +576,10 @@ void Cast::operate(Buffer* b1) {
     this->computed_ = true;
 }
 
+void Cast::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Cast(source, allocator));
+}
+
 //-----------------------------------\\
 // class SquareRoot;                 \\
 //-----------------------------------\\
@@ -471,6 +590,16 @@ SquareRoot::SquareRoot(Operation* p1, bool promotion) {
     this->name_ = "unnamed_square_root";
     this->type_ = "square_root";
     this->promotion = promotion;
+    this->ary_ = 1;
+}
+
+SquareRoot::SquareRoot(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_square_root"; // Are we ever going to use this->name_?
+    this->type_ = "square_root";
     this->ary_ = 1;
 }
 
@@ -513,6 +642,10 @@ void SquareRoot::operate(Buffer* b1) {
     this->computed_ = true;
 }
 
+void SquareRoot::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new SquareRoot(source, allocator));
+}
+
 //-----------------------------------\\
 // class Exponential;                \\
 //-----------------------------------\\
@@ -521,6 +654,16 @@ Exponential::Exponential(Operation* p1) {
     this->parent1_ = p1;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_exponential";
+    this->type_ = "exponential";
+    this->ary_ = 1;
+}
+
+Exponential::Exponential(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = false;
+    this->parent1_ = nullptr;
+    this->parent2_ = nullptr;
+    this->name_ = "unnamed_exponential"; // Are we ever going to use this->name_?
     this->type_ = "exponential";
     this->ary_ = 1;
 }
@@ -560,15 +703,28 @@ void Exponential::operate(Buffer* b1) {
     this->computed_ = true;
 }
 
+void Exponential::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Exponential(source, allocator));
+}
+
 //-----------------------------------\\
 // class Constant;                   \\
 //-----------------------------------\\
 
 Constant::Constant(Buffer* buf) {
     this->buffer_ = buf;
+    this->computed_ = true;
     this->name_ = "unnamed_constant";
     this->type_ = "constant";
     this->ary_ = 0;
+}
+
+Constant::Constant(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = true;
+    this->name_ = "unnamed_constant"; // Are we ever going to use this->name_?
+    this->type_ = "constant";
+    this->ary_ = 1;
 }
 
 void Constant::setBuffer(Buffer* buf) { this->buffer_ = buf; }
@@ -580,7 +736,6 @@ void Constant::derive() {
 }
 
 Buffer* Constant::operate() {
-    this->computed_ = true;
     return this->buffer_;
 }
 
@@ -593,6 +748,10 @@ void Constant::operate(Buffer* b1) {
     this->operate();
     //std::cout << "Error: Unary overloaded function Constant::operate called on a Constant Operator!" << std::endl;
     //assert(false);
+}
+
+void Constant::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Constant(source, allocator));
 }
 
 } // namespace deeplib

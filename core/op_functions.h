@@ -9,31 +9,31 @@ namespace deeplib {
 // NOTE: It is assumed that the allocators of t1 and t2 are the same.
 //       this may change in the future.
 
-Tensor add(Tensor& t1, Tensor& t2) {
+Tensor add(Tensor& t1, Tensor& t2, bool dynamic=true) {
     assert(t1.getDataType() == t2.getDataType());
 
     return Tensor(t1, t2,
         t1.getAllocator()->newOperation(
-            new Addition(t1.getOperation(), t2.getOperation())));
+            new Addition(t1.getOperation(), t2.getOperation())), dynamic);
 }
 
-Tensor sub(Tensor& t1, Tensor& t2) {
+Tensor sub(Tensor& t1, Tensor& t2, bool dynamic=true) {
     assert(t1.getDataType() == t2.getDataType());
 
     return Tensor(t1, t2,
         t1.getAllocator()->newOperation(
-            new Subtraction(t1.getOperation(), t2.getOperation())));
+            new Subtraction(t1.getOperation(), t2.getOperation())), dynamic);
 }
 
-Tensor power(Tensor& t1, Tensor& t2) {
+Tensor power(Tensor& t1, Tensor& t2, bool dynamic=true) {
     assert(t1.getDataType() == t2.getDataType());
     
     return Tensor(t1, t2,
         t1.getAllocator()->newOperation(
-            new Power(t1.getOperation(), t2.getOperation())));
+            new Power(t1.getOperation(), t2.getOperation())), dynamic);
 }
 
-Tensor multiply(Tensor& t1, Tensor& t2) {
+Tensor multiply(Tensor& t1, Tensor& t2, bool dynamic=true) {
     assert(t1.getDataType() == t2.getDataType());
 
     if (&t1 == &t2) {
@@ -42,22 +42,22 @@ Tensor multiply(Tensor& t1, Tensor& t2) {
 
     return Tensor(t1, t2,
         t1.getAllocator()->newOperation(
-            new Multiplication(t1.getOperation(), t2.getOperation())));
+            new Multiplication(t1.getOperation(), t2.getOperation())), dynamic);
 }
 
-Tensor divide(Tensor& t1, Tensor& t2) {
+Tensor divide(Tensor& t1, Tensor& t2, bool dynamic=true) {
     assert(t1.getDataType() == t2.getDataType());
 
     return Tensor(t1, t2,
         t1.getAllocator()->newOperation(
-            new Division(t1.getOperation(), t2.getOperation())));
+            new Division(t1.getOperation(), t2.getOperation())), dynamic);
 }
 
 // Inputs must be at least 2D. Inputs of higher rank
 // will only be considered for their last two dimensions.
 //
 // Shape is assumed to be in format [..., rows, columns]
-Tensor matmul(Tensor& t1, Tensor& t2) {
+Tensor matmul(Tensor& t1, Tensor& t2, bool dynamic=true) {
     assert(t1.getDataType() == t2.getDataType());
     std::vector<int>& shape1 = t1.getShape();
     std::vector<int>& shape2 = t2.getShape();
@@ -78,11 +78,11 @@ Tensor matmul(Tensor& t1, Tensor& t2) {
 
     return Tensor(t1, t2,
         t1.getAllocator()->newOperation(
-            new MatrixMultiplication(t1.getOperation(), t2.getOperation())), new_shape);
+            new MatrixMultiplication(t1.getOperation(), t2.getOperation())), new_shape, dynamic);
 }
 
 // TODO: dilation_rate
-Tensor conv2d(Tensor& image, Tensor& kernel, std::string padding, int (&strides)[2]) {
+Tensor conv2d(Tensor& image, Tensor& kernel, std::string padding, int (&strides)[2], bool dynamic=true) {
     assert(image.getDataType() == kernel.getDataType());
 
     assert(strides[0] >= 0 && strides[1] >= 0);
@@ -118,10 +118,10 @@ Tensor conv2d(Tensor& image, Tensor& kernel, std::string padding, int (&strides)
 
     return Tensor(image, kernel,
         image.getAllocator()->newOperation(
-            new Convolution2D(image.getOperation(), kernel.getOperation(), padding, strides)), new_shape);
+            new Convolution2D(image.getOperation(), kernel.getOperation(), padding, strides)), new_shape, dynamic);
 }
 
-Tensor sqrt(Tensor& t) {
+Tensor sqrt(Tensor& t, bool dynamic=true) {
     DataType dtype = t.getDataType();
     if (dtype < DataType::FLOAT32) {
         std::cout << "ERROR: Data type of operation sqrt must be floating point!" << std::endl;
@@ -130,20 +130,20 @@ Tensor sqrt(Tensor& t) {
     else {
         return Tensor(t, 
             t.getAllocator()->newOperation(
-                new SquareRoot(t.getOperation())));
+                new SquareRoot(t.getOperation())), dynamic);
     }
 }
 
-Tensor cast(Tensor& t, DataType new_dtype) {
+Tensor cast(Tensor& t, DataType new_dtype, bool dynamic=true) {
     return Tensor(t,
         t.getAllocator()->newOperation(
-            new Cast(t.getOperation())), new_dtype);
+            new Cast(t.getOperation())), new_dtype, dynamic);
 }
 
-Tensor exp(Tensor& t) {
+Tensor exp(Tensor& t, bool dynamic=true) {
     return Tensor(t, 
         t.getAllocator()->newOperation(
-            new Exponential(t.getOperation())));
+            new Exponential(t.getOperation())), dynamic);
 }
 
 } // namespace deeplib

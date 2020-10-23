@@ -60,7 +60,8 @@ void basicOperations() {
     Tensor t7 = add(t5, t6);
     Tensor t8 = divide(t4, t7);
 
-    eval(t8);
+    t8.print();
+    t8.uproot();
 
     a.printStats();
 }

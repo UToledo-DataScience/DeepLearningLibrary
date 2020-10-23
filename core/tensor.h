@@ -20,6 +20,8 @@ class Tensor {
 
     Operation* operation_;
 
+    bool dynamic_;
+
     void incrChildren() { children_++; }
 
   public:
@@ -33,17 +35,17 @@ class Tensor {
 
     // Tensor constructed from a binary operation. The operation given
     // is what this tensors operation will be.
-    Tensor(Tensor& t1, Tensor& t2, Operation* op);
+    Tensor(Tensor& t1, Tensor& t2, Operation* op, bool dynamic);
 
     // Forced allocation of a new Buffer using a new shape. Currently used for matrix operations
     // which yield a differently shaped output.
-    Tensor(Tensor& t1, Tensor& t2, Operation* op, std::vector<int> new_shape);
+    Tensor(Tensor& t1, Tensor& t2, Operation* op, std::vector<int> new_shape, bool dynamic);
 
     // Tensor constructed from a unary operation.
-    Tensor(Tensor& t, Operation* op);
+    Tensor(Tensor& t, Operation* op, bool dynamic);
 
     // Constructor for implicit casts from operations.
-    Tensor(Tensor& t, Operation* op, DataType new_dtype);
+    Tensor(Tensor& t, Operation* op, DataType new_dtype, bool dynamic);
 
     // Copy constructor.
     Tensor(Tensor& t);
@@ -57,6 +59,10 @@ class Tensor {
     // Operates the tensor, bringing the data in the buffer up to speed
     // at the current operation. 
     void operate();
+
+    // Calculates the gradient of this tensor
+    // with respect to target.
+    //Tensor gradient(Tensor& target);
 
     // Deallocate this tensor and ALL of it's ancestors.
     // Once this is called, all affected tensors will be unusable.

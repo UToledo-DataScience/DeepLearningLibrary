@@ -64,6 +64,9 @@ class Allocator {
     // Give a quick summary of everything this Allocator has allocated
     // and deallocated.
     void printStats();
+
+    // Get the last latest created Operation.
+    Operation* getLatestOperation();
 };
 
 } // namespace deeplib

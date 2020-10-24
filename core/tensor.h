@@ -3,6 +3,7 @@
 #include <cassert>
 #include <vector>
 #include <memory>
+#include <string>
 #include "core/buffer.h"
 #include "core/operations.h"
 #include "core/data_types.h"
@@ -31,7 +32,7 @@ class Tensor {
     // NOTE: This will have to be changed.
     //       Tensors initialized from a set of values will have to happen
     //       some other way. Eigen tensors/matrices?
-    Tensor(std::vector<int> values, std::vector<int> s, Allocator* a);
+    Tensor(std::vector<int> values, std::vector<int> s, Allocator* a, bool variable=false, std::string name="");
 
     // Tensor constructed from a binary operation. The operation given
     // is what this tensors operation will be.
@@ -91,6 +92,8 @@ class Tensor {
     void setName(std::string name);
 
     void print(bool linear=false);
+
+    BufferProperties getBufferProperties();
 };
 
 } // namespace deeplib

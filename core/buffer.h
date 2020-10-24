@@ -9,6 +9,23 @@ namespace deeplib {
 
 class Allocator;
 
+
+// Placeholder class when no data beyond Buffer properties are being passed.
+//
+// TODO: This seems like it will be useful in copying buffers without copying data.
+//       Maybe work with it further?
+struct BufferProperties {
+    DataType dtype;
+
+    Allocator* allocator;
+
+    std::vector<int> shape;
+
+    uint64_t total_size;
+    uint64_t total_elements;
+
+};
+
 // Buffer class intended hold allocated data for tensors in the graph.
 // Basically a wrapper for the dynamically allocated data pointer,
 // which here is void* buffer_data.
@@ -108,6 +125,13 @@ class Buffer {
     // Currently only deals with the last two dimensions. 
     template <typename BDType>
     void print(bool linear=false);
+
+    BufferProperties getProperties();
+
+    // Checks compatibility of the properties with this Buffer.
+    //
+    // True if all properties match, false otherwise.
+    bool checkCompatible(BufferProperties properties);
 };
 
 } // namespace deeplib

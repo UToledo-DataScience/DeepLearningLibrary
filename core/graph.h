@@ -21,15 +21,19 @@ class Graph {
 
     std::vector<Operation*> head_;
 
-    std::vector<Operation*> constants_;
+    std::map<std::string, Variable*> variables_;
 
   public:
-
+    // The leaves are the constant parameters of the graph.
     Graph(Operation* head, std::vector<Operation*> leaves, Allocator* new_allocator);
 
     // Numerically calculates the function described by this graph
     // given a set of values to use as Constants.
-    Tensor graph_computation(std::map<Constant*, Buffer*> constants_values);
+    //
+    // parameters is a map of Variable names to Buffer pointers
+    Tensor graphComputation(std::map<std::string, Buffer*> parameters);
+
+    std::map<std::string, BufferProperties> getVariableMap();
 };
 
 } // namespace deeplib

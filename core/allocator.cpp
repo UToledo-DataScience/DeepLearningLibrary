@@ -120,4 +120,8 @@ void Allocator::printStats() {
               << "bytes_currently_allocated_: " << bytes_currently_allocated_ << std::endl;
 }
 
+Operation* Allocator::getLatestOperation() {
+    return operations_.back();
+}
+
 } // namespace deeplib

@@ -720,11 +720,11 @@ Constant::Constant(Buffer* buf) {
 }
 
 Constant::Constant(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), true));
     this->computed_ = true;
     this->name_ = "unnamed_constant"; // Are we ever going to use this->name_?
     this->type_ = "constant";
-    this->ary_ = 1;
+    this->ary_ = 0;
 }
 
 void Constant::setBuffer(Buffer* buf) { this->buffer_ = buf; }
@@ -752,6 +752,51 @@ void Constant::operate(Buffer* b1) {
 
 void Constant::createSelf(Operation* source, Allocator* allocator) {
     allocator->newOperation(new Constant(source, allocator));
+}
+
+//-----------------------------------\\
+// class Variable;                   \\
+//-----------------------------------\\
+
+Variable::Variable(Buffer* buf) {
+    this->buffer_ = buf;
+    this->computed_ = true;
+    this->name_ = "unnamed_variable";
+    this->type_ = "variable";
+    this->ary_ = 0;
+}
+
+Variable::Variable(Operation* source, Allocator* allocator) {
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->computed_ = true;
+    this->name_ = "unnamed_variable"; // Are we ever going to use this->name_?
+    this->type_ = "variable";
+    this->ary_ = 0;
+}
+
+void Variable::setBuffer(Buffer* buf) { this->buffer_ = buf; }
+
+Buffer* Variable::getBuffer() { return this->buffer_; }
+
+void Variable::derive() {
+    return;
+}
+
+Buffer* Variable::operate() {
+    return this->buffer_;
+}
+
+void Variable::operate(Buffer* b1, Buffer* b2) {
+    std::cout << "Error: Binary overloaded function Variable::operate called on a unary function!" << std::endl;
+    assert(false);
+}
+
+void Variable::operate(Buffer* b1) {
+    this->operate();
+}
+
+void Variable::createSelf(Operation* source, Allocator* allocator) {
+    allocator->newOperation(new Variable(source, allocator));
 }
 
 } // namespace deeplib

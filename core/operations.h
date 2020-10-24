@@ -32,8 +32,10 @@ class Allocator;
 //
 // This is never to be used directly.
 class Operation {
+    // TODO: Look into reducing number of friend classes?
     friend class Allocator;
     friend class Tensor;
+    friend class Graph;
 
   protected:
     bool computed_;
@@ -296,6 +298,23 @@ class Constant : public Operation {
   public:
     Constant(Buffer* buf);
     Constant(Operation* source, Allocator* allocator);
+
+    void setBuffer(Buffer* buf);
+    Buffer* getBuffer();
+
+    void derive();
+
+    Buffer* operate();
+    void operate(Buffer* b1, Buffer* b2);
+    void operate(Buffer* b1);
+
+    void createSelf(Operation* source, Allocator* allocator);
+};
+
+class Variable : public Operation {
+  public:
+    Variable(Buffer* buf);
+    Variable(Operation* source, Allocator* allocator);
 
     void setBuffer(Buffer* buf);
     Buffer* getBuffer();

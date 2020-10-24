@@ -181,4 +181,30 @@ uint64_t Buffer::getElements() {
     return total;
 }
 
+BufferProperties Buffer::getProperties() {
+    BufferProperties properties;
+
+    properties.dtype = dtype_;
+    properties.allocator = allocator_;
+
+    for (int dim : shape_)
+        properties.shape.push_back(dim);
+
+    properties.total_size = total_size_;
+    properties.total_elements = total_elements_;
+
+    return properties;
+}
+
+bool Buffer::checkCompatibility(BufferProperties properties) {
+    if ((int)properties.dtype != (int)dtype_ ||
+        properties.allocator != allocator_ ||
+        !compare(properties.shape, shape_) ||
+        properties.total_size != total_size_ ||
+        properties.total_elements != total_elements_)
+        return false;
+    else
+        return true;
+}
+
 } // namespace deeplib

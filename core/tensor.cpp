@@ -1,6 +1,7 @@
 #include <stack>
 #include <vector>
 #include <memory>
+#include <string>
 #include <cassert>
 #include "core/data_types.h"
 #include "core/tensor.h"
@@ -20,14 +21,24 @@ Tensor::Tensor(std::vector<int> new_shape, DataType data_type, Allocator* a) {
     operation_ = allocator_->newOperation(new Constant(buffer_)); // ?? subject to change
 }
 
-Tensor::Tensor(std::vector<int> values, std::vector<int> shape, Allocator* a) {
+Tensor::Tensor(std::vector<int> values, std::vector<int> shape, Allocator* a, bool variable, std::string name) {
     children_ = 0;
     allocator_ = a;
 
     dtype_ = DataType::INT32;
 
     buffer_ = allocator_->newBuffer(new Buffer(values, shape, a));
-    operation_ = allocator_->newOperation(new Constant(buffer_));
+
+    if (variable) {
+        if (name.empty()) {
+            std::cout << "Error: Variable must be initialized with a name." << std::endl;
+            assert(false);
+        }
+
+        operation_ = allocator_->newOperation(new Variable(buffer_));
+    }
+    else
+        operation_ = allocator_->newOperation(new Constant(buffer_));
 }
 
 Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op, bool dynamic) {
@@ -366,6 +377,10 @@ void Tensor::print(bool linear) {
         std::cout << "ERROR: Bad data type!" << std::endl;
         assert(false);
     }
+}
+
+BufferProperties Tensor::getBufferProperties() {
+    return buffer_->getProperties();
 }
 
 } // namespace deeplib

@@ -10,9 +10,30 @@
 
 namespace deeplib {
 
-class Tensor {
+// Is this necessary? At the moment it seems so...
+// see Graph::graphComputation, specifically the 
+// std::map<std::string, TensorProperties> parameter.
+// Passing a straight Tensor has the compiler disagree because
+// it's an incomplete type.
+struct TensorProperties {
     uint32_t children_;
-    std::vector<int>* shape_;
+
+    Buffer* buffer_;
+    Allocator* allocator_;
+
+    DataType dtype_;
+
+    Operation* operation_;
+
+    bool dynamic_;
+};
+
+// TODO: This (and probably others) need better organization regarding 
+//       public/protected/private design.
+class Tensor {
+    friend class Graph;
+
+    uint32_t children_;
 
     Buffer* buffer_;
     Allocator* allocator_;
@@ -23,9 +44,23 @@ class Tensor {
 
     bool dynamic_;
 
+    // If a Tensor needs created from an existing Operation.
+    // NOTE: Assumes that the Tensor has no children.
+    Tensor(Operation* op);
+
+    Buffer* getBuffer() const;
+
+    void setBuffer(Buffer* buf);
+
     void incrChildren() { children_++; }
 
+    bool isConstant(Operation* op);
+
+    bool isNary(Operation* op, int n);
+
   public:
+    Tensor();
+
     Tensor(std::vector<int> new_shape, DataType dt, Allocator* a);
 
     // Fresh tensor initialized using a 1D set of values.
@@ -49,13 +84,9 @@ class Tensor {
     Tensor(Tensor& t, Operation* op, DataType new_dtype, bool dynamic);
 
     // Copy constructor.
-    Tensor(Tensor& t);
+    Tensor(const Tensor& t);
 
     ~Tensor();
-
-    bool isConstant(Operation* op);
-
-    bool isNary(Operation* op, int n);
 
     // Operates the tensor, bringing the data in the buffer up to speed
     // at the current operation. 
@@ -73,27 +104,25 @@ class Tensor {
 
     // Getters and setters.
 
-    std::vector<int>& getShape();
+    std::vector<int>& getShape() const;
 
-    uint64_t getSize();
+    uint64_t getSize() const;
 
-    uint32_t getChildren();
+    uint32_t getChildren() const;
 
-    Operation* getOperation();
+    Operation* getOperation() const;
 
-    DataType getDataType();
+    DataType getDataType() const;
 
-    Allocator* getAllocator();
-
-    Buffer* getBuffer();
-
-    void setBuffer(Buffer* buf);
+    Allocator* getAllocator() const;
 
     void setName(std::string name);
 
     void print(bool linear=false);
 
-    BufferProperties getBufferProperties();
+    TensorProperties getTensorProperties() const;
+
+    BufferProperties getBufferProperties() const;
 };
 
 } // namespace deeplib

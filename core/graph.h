@@ -19,7 +19,7 @@ namespace deeplib {
 class Graph {
     Allocator* allocator_;
 
-    std::vector<Operation*> head_;
+    std::vector<Operation*> heads_;
 
     std::map<std::string, Variable*> variables_;
 
@@ -31,7 +31,7 @@ class Graph {
     // given a set of values to use as Constants.
     //
     // parameters is a map of Variable names to Buffer pointers
-    Tensor graphComputation(std::map<std::string, Buffer*> parameters);
+    std::vector<Tensor> graphComputation(std::map<std::string, Tensor> parameters);
 
     std::map<std::string, BufferProperties> getVariableMap();
 };

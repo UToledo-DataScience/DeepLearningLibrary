@@ -1,6 +1,7 @@
 #include <vector>
 #include <stack>
 #include <map>
+#include "core/tensor.h"
 #include "core/utils.h"
 #include "core/graph.h"
 #include "core/operations.h"
@@ -8,11 +9,12 @@
 
 namespace deeplib {
 
+// TODO: UNTESTED
 Graph::Graph(Operation* head, std::vector<Operation*> leaves, Allocator* new_allocator) {
     allocator_ = new_allocator;
 
     head->createSelf(head, allocator_);
-    heads_.append(allocator_->getLatestOperation());
+    heads_.push_back(allocator_->getLatestOperation());
 
     // Traverse the operation graph
     // and allocate copies of the operations and their buffers.
@@ -50,7 +52,7 @@ Graph::Graph(Operation* head, std::vector<Operation*> leaves, Allocator* new_all
             local_op->parent1_ = latest_local_op;
 
             // If the parent1_ isn't a leaf, keep traversing this branch.
-            if (!in<Operation*>(traversal_op->parent1_, leaves)) {
+            if (!in<Operation>(traversal_op->parent1_, leaves)) {
                 traversal_stack.push(traversal_op->parent1_);
                 local_traversal_stack.push(latest_local_op);
 
@@ -58,7 +60,7 @@ Graph::Graph(Operation* head, std::vector<Operation*> leaves, Allocator* new_all
             }
             // Variables will only be leaves if included.
             // If the latest operation is a Variable, add it to the list.
-            else if (!latest_local_op->type.compare("variable"))
+            else if (!latest_local_op->type_.compare("variable"))
                 variables_[latest_local_op->name_] = dynamic_cast<Variable*>(latest_local_op);
         }
 
@@ -68,39 +70,55 @@ Graph::Graph(Operation* head, std::vector<Operation*> leaves, Allocator* new_all
             latest_local_op = allocator_->getLatestOperation();
             local_op->parent2_ = latest_local_op;
 
-            if (!in<Operation*>(traversal_op->parent2_, leaves)) {
+            if (!in<Operation>(traversal_op->parent2_, leaves)) {
                 traversal_stack.push(traversal_op->parent2_);
                 local_traversal_stack.push(latest_local_op);
 
                 local_op = latest_local_op;
             }
-            else if (!latest_local_op->type.compare("variable"))
+            else if (!latest_local_op->type_.compare("variable"))
                 variables_[latest_local_op->name_] = dynamic_cast<Variable*>(latest_local_op);
         }
     }
 }
 
-Tensor Graph::graphComputation(std::map<std::string, Tensor> parameters) {
-    // Fill the Variables with the given parameters.
+// TODO: UNTESTED
+std::vector<Tensor> Graph::graphComputation(std::map<std::string, Tensor> parameters) {
+    // Fill the Variables in this->variables_ with the given parameters.
     std::map<std::string, Tensor>::iterator it;
-    for (it = parameters.begin(); i < parameters.end(); i++) {
-        BufferProperties tensor_properties = it->second.getBufferProperties();
+    for (it = parameters.begin(); it != parameters.end(); it++) {
+        BufferProperties buffer_properties = it->second.getBufferProperties();
         std::string tensor_name = it->first;
 
         // TODO: A more descriptive error code will probably be more helpful here.
-        if (!variables_[tensor_name]->checkCompatibility(tensor_properties)) {
+        if (!variables_[tensor_name]->buffer_->checkCompatible(buffer_properties)) {
             std::cout << "Error: Given Tensor " << tensor_name << " incompatible with "
                       << "Graph Variable of same name." << std::endl;
             assert(false);
         }
+
+        variables_[tensor_name]->buffer_->copyData(parameters[tensor_name].getBuffer());
+    }
+
+    std::vector<Tensor> results;
+
+    for (int i = 0; i < heads_.size(); i++) {
+        Tensor head(heads_[i]);
+        head.operate();
+
+        results.push_back(head);
+    }
+
+    return results;
 }
 
+// TODO: UNTESTED
 std::map<std::string, BufferProperties> Graph::getVariableMap() {
-    std::map variable_map;
+    std::map<std::string, BufferProperties> variable_map;
 
     std::map<std::string, Variable*>::iterator it;
     for (it = variables_.begin(); it != variables_.end(); it++)
-        variable_map[it->first->name_] = it->second->buffer_->getProperties();
+        variable_map[it->first] = it->second->buffer_->getProperties();
 
     return variable_map;
 }

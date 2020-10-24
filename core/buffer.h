@@ -43,10 +43,13 @@ struct BufferProperties {
 // corresponding operation's .operate() is called.
 //
 // TODO: refine the creation rules, it feels too ad hoc.
+// TODO: Reducing number of friend classes? Feel like
+//       these are getting too intertwined...
 class Buffer {
     friend class Allocator;
     friend class Cast; // For ease in changing buffer data types.
     friend class Tensor;
+    friend class Graph;
 
     void* buffer_data_;
 
@@ -65,6 +68,10 @@ class Buffer {
     // Total number of elements managed by this buffer. This number
     // will change as the shape of buffer_data changes.
     uint64_t total_elements_;
+
+  protected:
+    // Copy data from another Buffer's buffer_data_ into this one's own buffer_data_.
+    void copyData(Buffer* buf, bool compatibility_check=true);
 
   public:
     Buffer();

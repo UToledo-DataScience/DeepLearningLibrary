@@ -11,6 +11,24 @@
 
 namespace deeplib {
 
+Tensor::Tensor(Operation* op) {
+    children_ = 0;
+    allocator_ = op->buffer_->allocator_;
+    buffer_ = op->buffer_;
+    dtype_ = buffer_->dtype_;
+    operation_ = op;
+    dynamic_ = false;
+}
+
+Tensor::Tensor() {
+    children_ = 0;
+    allocator_ = nullptr;
+    buffer_ = nullptr;
+    dtype_ = (DataType)0;
+    operation_ = nullptr;
+    dynamic_ = false;
+}
+
 Tensor::Tensor(std::vector<int> new_shape, DataType data_type, Allocator* a) {
     children_ = 0;
     allocator_ = a;
@@ -19,6 +37,7 @@ Tensor::Tensor(std::vector<int> new_shape, DataType data_type, Allocator* a) {
 
     buffer_ = allocator_->newBuffer(new Buffer(new_shape, a));
     operation_ = allocator_->newOperation(new Constant(buffer_)); // ?? subject to change
+    dynamic_ = false;
 }
 
 Tensor::Tensor(std::vector<int> values, std::vector<int> shape, Allocator* a, bool variable, std::string name) {
@@ -39,6 +58,8 @@ Tensor::Tensor(std::vector<int> values, std::vector<int> shape, Allocator* a, bo
     }
     else
         operation_ = allocator_->newOperation(new Constant(buffer_));
+
+    dynamic_ = true;
 }
 
 Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op, bool dynamic) {
@@ -61,6 +82,9 @@ Tensor::Tensor(Tensor& t1, Tensor& t2, Operation* op, bool dynamic) {
         t1.incrChildren();
     }
 
+    // TODO: Re-evaluate this, since a new Buffer is allocated per new Tensor spawned
+    //       from an Operation.
+    //
     // Buffer shenanigans if a single tensor is used in two or more operations.
     //
     // For each tensor, n-1 buffers need to be allocated
@@ -181,15 +205,14 @@ Tensor::Tensor(Tensor& t, Operation* op, DataType new_dtype, bool dynamic) {
     }
 }
 
-Tensor::Tensor(Tensor& t) {
+Tensor::Tensor(const Tensor& t) {
     children_ = t.getChildren();
     allocator_ = t.getAllocator();
     buffer_ = t.getBuffer();
     dtype_ = t.getDataType();
     operation_ = t.getOperation();
+    dynamic_ = t.dynamic_;
 }
-
-Tensor::~Tensor() {}
 
 // Helper for Tensor::operate()
 bool Tensor::isConstant(Operation* op) {
@@ -198,6 +221,17 @@ bool Tensor::isConstant(Operation* op) {
 
 bool Tensor::isNary(Operation* op, int n) {
     return op->ary_ == n;
+}
+
+Tensor::~Tensor() {}
+
+Buffer* Tensor::getBuffer() const {
+    return buffer_;
+}
+
+void Tensor::setBuffer(Buffer* buf) {
+    buffer_ = buf;
+    operation_->setBuffer(buf);
 }
 
 // NOTE: Only supports up to binary operations.
@@ -290,37 +324,28 @@ void Tensor::uproot() {
     allocator_->uprootOperation(operation_);
 }
 
-std::vector<int>& Tensor::getShape() {
+std::vector<int>& Tensor::getShape() const {
     return buffer_->getShape();
 }
 
-uint64_t Tensor::getSize() {
+uint64_t Tensor::getSize() const {
     return buffer_->getSize();
 }
 
-DataType Tensor::getDataType() {
+DataType Tensor::getDataType() const {
     return dtype_;
 }
 
-uint32_t Tensor::getChildren() {
+uint32_t Tensor::getChildren() const {
     return children_;
 }
 
-Operation* Tensor::getOperation() {
+Operation* Tensor::getOperation() const {
     return operation_;
 }
 
-Allocator* Tensor::getAllocator() {
+Allocator* Tensor::getAllocator() const {
     return buffer_->getAllocator();
-}
-
-Buffer* Tensor::getBuffer() {
-    return buffer_;
-}
-
-void Tensor::setBuffer(Buffer* buf) {
-    buffer_ = buf;
-    operation_->setBuffer(buf);
 }
 
 void Tensor::setName(std::string name) {
@@ -379,7 +404,7 @@ void Tensor::print(bool linear) {
     }
 }
 
-BufferProperties Tensor::getBufferProperties() {
+BufferProperties Tensor::getBufferProperties() const {
     return buffer_->getProperties();
 }
 

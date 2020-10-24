@@ -88,6 +88,13 @@ Buffer::Buffer(std::vector<int> values, std::vector<int>& s, Allocator* a) {
 
 Buffer::~Buffer() {}
 
+void Buffer::copyData(Buffer* buf, bool compatibility_check) {
+    if (compatibility_check)
+        assert(checkCompatible(buf->getProperties()));
+
+    memcpy(buffer_data_, buf->buffer_data_, total_size_);
+}
+
 void Buffer::initialize() {
     if (buffer_data_ == nullptr) {
         switch (dtype_) {
@@ -196,7 +203,7 @@ BufferProperties Buffer::getProperties() {
     return properties;
 }
 
-bool Buffer::checkCompatibility(BufferProperties properties) {
+bool Buffer::checkCompatible(BufferProperties properties) {
     if ((int)properties.dtype != (int)dtype_ ||
         properties.allocator != allocator_ ||
         !compare(properties.shape, shape_) ||

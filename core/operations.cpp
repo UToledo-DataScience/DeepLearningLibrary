@@ -44,6 +44,14 @@ void Operation::setName(std::string name) {
     this->name_ = name;
 }
 
+bool Operation::isConstant() {
+    return !this->type_.compare("constant");
+}
+
+bool Operation::isNary(int n) {
+    return this->ary_ == n;
+}
+
 //-----------------------------------\\
 // class Addition;                   \\
 //-----------------------------------\\

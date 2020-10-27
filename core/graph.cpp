@@ -10,8 +10,8 @@
 namespace deeplib {
 
 // TODO: UNTESTED
-Graph::Graph(Operation* head, std::vector<Operation*> leaves, Allocator* new_allocator) {
-    allocator_ = new_allocator;
+Graph::createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Allocator* allocator) {
+    allocator_ = allocator;
 
     head->createSelf(head, allocator_);
     heads_.push_back(allocator_->getLatestOperation());
@@ -80,6 +80,16 @@ Graph::Graph(Operation* head, std::vector<Operation*> leaves, Allocator* new_all
                 variables_[latest_local_op->name_] = dynamic_cast<Variable*>(latest_local_op);
         }
     }
+}
+
+Graph::Graph(Tensor& head, std::vector<Tensor&> leaves, Allocator* allocator) {
+    Operation* op_head = tensor.operation_;
+    std::vector<Operation*> op_leaves;
+
+    for (Tensor& t : leaves)
+        op_leaves.push_back(t.operation_);
+
+    createGraphFromOps(op_head, op_leaves, allocator);
 }
 
 // TODO: UNTESTED

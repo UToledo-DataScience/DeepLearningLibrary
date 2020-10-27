@@ -60,6 +60,9 @@ class Operation {
     Operation(Operation* p1, Operation* p2);
     Operation(Operation* source, Allocator* allocator);
 
+    bool isConstant();
+    bool isNary(int n);
+
     virtual void setBuffer(Buffer* buf) = 0;
     virtual Buffer* getBuffer() = 0;
 

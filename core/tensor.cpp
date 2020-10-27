@@ -7,6 +7,7 @@
 #include "core/tensor.h"
 #include "core/buffer.h"
 #include "core/operations.h"
+#include "core/operations_utils.h"
 #include "core/utils.h"
 
 namespace deeplib {
@@ -214,15 +215,6 @@ Tensor::Tensor(const Tensor& t) {
     dynamic_ = t.dynamic_;
 }
 
-// Helper for Tensor::operate()
-bool Tensor::isConstant(Operation* op) {
-    return !op->type_.compare("constant");
-}
-
-bool Tensor::isNary(Operation* op, int n) {
-    return op->ary_ == n;
-}
-
 Tensor::~Tensor() {}
 
 Buffer* Tensor::getBuffer() const {
@@ -237,7 +229,7 @@ void Tensor::setBuffer(Buffer* buf) {
 // NOTE: Only supports up to binary operations.
 // This should probably be moved.
 void Tensor::operate() {
-    if (isConstant(this->operation_)) {
+    if (this->operation_->isConstant()) {
         this->operation_->operate();
         return;
     }
@@ -252,7 +244,7 @@ void Tensor::operate() {
             operation_buffer2.push(op);
             operation_buffer1.pop();
 
-            if (isNary(op, 2)) {
+            if (op->isNary(2)) {
                 if (op->parent1_)
                     operation_buffer1.push(op->parent1_);
 
@@ -270,12 +262,12 @@ void Tensor::operate() {
             Operation* buf1_top = operation_buffer1.size() > 0 ? operation_buffer1.top() : 0;
             Operation* buf2_top = operation_buffer2.top();
             Operation* comp_top = computed_operations.size() > 0 ? computed_operations.top() : 0;
-            if (isConstant(buf2_top) || buf2_top->computed_) {
+            if (buf2_top->isConstant() || buf2_top->computed_) {
                 computed_operations.push(buf2_top);
                 operation_buffer2.pop();
             }
             else if (comp_top) {
-                if (isNary(buf2_top, 1) && (isConstant(comp_top) || comp_top->computed_)) {
+                if (buf2_top->isNary(1) && (comp_top->isConstant() || comp_top->computed_)) {
                     buf2_top->operate(comp_top->buffer_);
                     computed_operations.pop();
                     computed_operations.push(buf2_top);
@@ -283,7 +275,7 @@ void Tensor::operate() {
 
                     continue;
                 }
-                if (isNary(buf2_top, 2) && computed_operations.size() > 1) {
+                if (buf2_top->isNary(2) && computed_operations.size() > 1) {
                     Operation* op1 = computed_operations.top();
                     computed_operations.pop();
                     Operation* op2 = computed_operations.top();

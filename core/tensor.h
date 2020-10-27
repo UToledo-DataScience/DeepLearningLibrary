@@ -54,10 +54,6 @@ class Tensor {
 
     void incrChildren() { children_++; }
 
-    bool isConstant(Operation* op);
-
-    bool isNary(Operation* op, int n);
-
   public:
     Tensor();
 

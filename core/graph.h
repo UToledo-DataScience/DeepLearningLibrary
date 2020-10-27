@@ -24,10 +24,12 @@ class Graph {
     std::map<std::string, Variable*> variables_;
 
   public:
-    Graph(Tensor& head, std::vector<Tensor&> leaves, Allocator* allocator);
+    Graph(Tensor& head, std::vector<Tensor> leaves, Allocator* allocator);
+
+    void traceGraph();
 
     // The leaves are the constant parameters of the graph.
-    createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Allocator* allocator);
+    void createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Allocator* allocator);
 
     // Numerically calculates the function described by this graph
     // given a set of values to use as Constants.

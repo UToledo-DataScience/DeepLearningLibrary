@@ -1,11 +1,14 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <map>
 #include "core/tensor.h"
+#include "core/graph.h"
 #include "core/op_functions.h"
 #include "core/data_types.h"
 
 using std::cout; using std::endl; using std::vector;
+using std::map;
 using namespace std::chrono;
 using namespace deeplib;
 
@@ -66,6 +69,71 @@ void basicOperations() {
     a.printStats();
 }
 
+void graphTest() {
+    Allocator a;
+
+    int size = 5;
+
+    vector<int> v11;
+    vector<int> v22;
+
+    for (int i = 0; i < size; i++) {
+        v11.push_back(2);
+        v22.push_back(3);
+    }
+
+    vector<int> s = { size };
+
+    Tensor t1(v11, s, &a);
+    Tensor t2(v22, s, &a);
+    Tensor ct1 = cast(t1, DataType::FLOAT32);
+    Tensor ct2 = cast(t2, DataType::FLOAT32);
+    Tensor tConst({ 1 }, { 1 }, &a);
+    tConst = cast(tConst, DataType::FLOAT32);
+    Tensor t3 = multiply(ct1, ct2);
+
+    // TODO: operator overloading
+
+    t3 = exp(t3);
+    t3 = multiply(t3, ct1); // Replacing variables maintains the graph.
+    /*Tensor t4 = power(t3, tConst); // Broadcasting with constants.
+    t4 = add(t4, t1); // Reuse of tensors maintains the graph (this is the third use of t1).
+    t4 = sub(t4, t2);
+    t4 = divide(t4, t1);
+    Tensor t5 = sqrt(t1);
+    Tensor t6 = exp(t2);
+    Tensor t7 = add(t5, t6);
+    Tensor t8 = divide(t4, t7);*/
+
+    //t3.traceGraph();
+
+    vector<Tensor> leaves = { t1, t2 };
+
+    Graph graph(t3, leaves, &a);
+    graph.traceGraph();
+    exit(1);
+
+    vector<int> v3, v4;
+
+    for (int i = 0; i < size; i++) {
+        v3.push_back((i+1)*(i+1));
+        v4.push_back((i+1)*(i+1));
+    }
+
+    Tensor ta(v3, s, &a);
+    Tensor tb(v4, s, &a);
+    Tensor tc({ -1 }, { -1 }, &a);
+
+    map<string, Tensor> filler;
+
+    //graph.graphComputation(filler);
+
+    //t8.print();
+    //t8.uproot();
+
+    a.printStats();
+}
+
 void matrixMultiplication() {
     Allocator a;
 
@@ -120,5 +188,5 @@ void convolution() {
 }
 
 int main() {
-    basicOperations();
+    graphTest();
 }

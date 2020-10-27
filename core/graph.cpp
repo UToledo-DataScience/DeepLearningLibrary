@@ -9,8 +9,8 @@
 
 namespace deeplib {
 
-// TODO: UNTESTED
-Graph::createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Allocator* allocator) {
+// TODO: REFACTOR -- Isn't correctly traversing the tree.
+void Graph::createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Allocator* allocator) {
     allocator_ = allocator;
 
     head->createSelf(head, allocator_);
@@ -21,6 +21,7 @@ Graph::createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Alloc
     std::stack<Operation*> traversal_stack;
     std::stack<Operation*> local_traversal_stack;
     traversal_stack.push(head);
+    local_traversal_stack.push(allocator_->getLatestOperation());
 
     // Working Operation for source graph traversal.
     Operation* traversal_op;
@@ -37,7 +38,14 @@ Graph::createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Alloc
     //       to this graph seems like it should be in order.
     while (traversal_stack.size() > 0) {
         traversal_op = traversal_stack.top();
+        std::cout << "traversal_op->type_: " << traversal_op->type_ << std::endl;
+        std::cout << "traversal_op->parent1_: " << traversal_op->parent1_ << std::endl;
+        std::cout << "traversal_op->parent2_: " << traversal_op->parent2_ << std::endl;
         local_op = local_traversal_stack.top();
+        std::cout << "local_op: " << local_op << std::endl;
+        std::cout << "local_op->type_: " << local_op->type_ << std::endl;
+        std::cout << "local_op->parent1_: " << local_op->parent1_ << std::endl;
+        std::cout << "local_op->parent2_: " << local_op->parent2_ << std::endl;
 
         traversal_stack.pop();
         local_traversal_stack.pop();
@@ -52,25 +60,31 @@ Graph::createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Alloc
             local_op->parent1_ = latest_local_op;
 
             // If the parent1_ isn't a leaf, keep traversing this branch.
-            if (!in<Operation>(traversal_op->parent1_, leaves)) {
+            if (in<Operation>(traversal_op->parent1_, leaves) < 0) {
+                std::cout << "CHECK 1" << std::endl;
                 traversal_stack.push(traversal_op->parent1_);
                 local_traversal_stack.push(latest_local_op);
 
                 local_op = latest_local_op;
+
+                continue;
             }
             // Variables will only be leaves if included.
             // If the latest operation is a Variable, add it to the list.
-            else if (!latest_local_op->type_.compare("variable"))
+            else if (!latest_local_op->type_.compare("variable")) {
                 variables_[latest_local_op->name_] = dynamic_cast<Variable*>(latest_local_op);
+            }
         }
 
         // A repeat of the above for parent2_.
         if (traversal_op->parent2_) {
+            std::cout << "BINARY CHECK" << std::endl;
             traversal_op->parent2_->createSelf(traversal_op->parent2_, allocator_);
             latest_local_op = allocator_->getLatestOperation();
             local_op->parent2_ = latest_local_op;
 
-            if (!in<Operation>(traversal_op->parent2_, leaves)) {
+            if (in<Operation>(traversal_op->parent2_, leaves) < 0) {
+                std::cout << "CHECK 2" << std::endl;
                 traversal_stack.push(traversal_op->parent2_);
                 local_traversal_stack.push(latest_local_op);
 
@@ -82,8 +96,8 @@ Graph::createGraphFromOps(Operation* head, std::vector<Operation*> leaves, Alloc
     }
 }
 
-Graph::Graph(Tensor& head, std::vector<Tensor&> leaves, Allocator* allocator) {
-    Operation* op_head = tensor.operation_;
+Graph::Graph(Tensor& head, std::vector<Tensor> leaves, Allocator* allocator) {
+    Operation* op_head = head.operation_;
     std::vector<Operation*> op_leaves;
 
     for (Tensor& t : leaves)
@@ -92,8 +106,36 @@ Graph::Graph(Tensor& head, std::vector<Tensor&> leaves, Allocator* allocator) {
     createGraphFromOps(op_head, op_leaves, allocator);
 }
 
+void Graph::traceGraph() {
+    std::stack<Operation*> operation_buffer1;
+    Operation* op = this->heads_[0];
+    operation_buffer1.push(op);
+    while (operation_buffer1.size() > 0) {
+        op = operation_buffer1.top();
+        std::cout << "Current Operation.type_: " << op->type_ << std::endl;
+        operation_buffer1.pop();
+
+        if (op->isNary(2)) {
+            if (op->parent1_)
+                operation_buffer1.push(op->parent1_);
+
+            if (op->parent2_)
+                operation_buffer1.push(op->parent2_);
+        }   
+        else {
+            if (op->parent1_)
+                operation_buffer1.push(op->parent1_);
+        }   
+    }
+}
+
 // TODO: UNTESTED
 std::vector<Tensor> Graph::graphComputation(std::map<std::string, Tensor> parameters) {
+    if (parameters.size() != variables_.size()) {
+        std::cout << "Error: Number of given parameters does not match number of Graph Variables." << std::endl;
+        assert(false);
+    }
+
     // Fill the Variables in this->variables_ with the given parameters.
     std::map<std::string, Tensor>::iterator it;
     for (it = parameters.begin(); it != parameters.end(); it++) {
@@ -113,7 +155,11 @@ std::vector<Tensor> Graph::graphComputation(std::map<std::string, Tensor> parame
     std::vector<Tensor> results;
 
     for (int i = 0; i < heads_.size(); i++) {
+        std::cout << heads_[i]->parent1_ << std::endl;
+        std::cout << heads_[i]->parent2_ << std::endl;
+
         Tensor head(heads_[i]);
+        std::cout << "CHECK" << std::endl;
         head.operate();
 
         results.push_back(head);

@@ -226,6 +226,29 @@ void Tensor::setBuffer(Buffer* buf) {
     operation_->setBuffer(buf);
 }
 
+void Tensor::traceGraph() {
+    std::stack<Operation*> operation_buffer1;
+    Operation* op = this->operation_;
+    operation_buffer1.push(op);
+    while (operation_buffer1.size() > 0) {
+        op = operation_buffer1.top();
+        std::cout << "Current Operation.type_: " << op->type_ << std::endl;
+        operation_buffer1.pop();
+
+        if (op->isNary(2)) {
+            if (op->parent1_)
+                operation_buffer1.push(op->parent1_);
+
+            if (op->parent2_)
+                operation_buffer1.push(op->parent2_);
+        }
+        else {
+            if (op->parent1_)
+                operation_buffer1.push(op->parent1_);
+        }
+    }
+}
+
 // NOTE: Only supports up to binary operations.
 // This should probably be moved.
 void Tensor::operate() {
@@ -290,7 +313,8 @@ void Tensor::operate() {
                 }
             }
             else {
-                std::cerr << "ERROR in graph traversal: What happened?" << std::endl;
+                std::cerr << "ERROR in graph traversal: Orphaned Operation node!" << std::endl;
+                std::cout << "buf2_top->type_: " << buf2_top->type_ << std::endl;
                 assert(false);
             }
         }

@@ -84,6 +84,9 @@ class Tensor {
 
     ~Tensor();
 
+    // Traverses the Graph and prints the Operation node type as it goes.
+    void traceGraph();
+
     // Operates the tensor, bringing the data in the buffer up to speed
     // at the current operation. 
     void operate();

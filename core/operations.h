@@ -39,6 +39,7 @@ class Operation {
 
   protected:
     bool computed_;
+    bool dynamic_;
 
     string name_;
     string type_;

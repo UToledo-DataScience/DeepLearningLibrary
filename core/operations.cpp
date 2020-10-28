@@ -44,6 +44,10 @@ void Operation::setName(std::string name) {
     this->name_ = name;
 }
 
+bool Operation::isComputed() {
+    return this->computed_;
+}
+
 bool Operation::isConstant() {
     return !this->type_.compare("constant");
 }
@@ -67,8 +71,8 @@ Addition::Addition(Operation* p1, Operation* p2) {
 }
 
 Addition::Addition(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_addition"; // Are we ever going to use this->name_?
@@ -133,8 +137,8 @@ Subtraction::Subtraction(Operation* p1, Operation* p2) {
 }
 
 Subtraction::Subtraction(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_subtraction"; // Are we ever going to use this->name_?
@@ -200,8 +204,8 @@ Multiplication::Multiplication(Operation* p1, Operation* p2) {
 }
 
 Multiplication::Multiplication(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_multiplication"; // Are we ever going to use this->name_?
@@ -279,8 +283,8 @@ Division::Division(Operation* p1, Operation* p2) {
 }
 
 Division::Division(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_division"; // Are we ever going to use this->name_?
@@ -345,8 +349,8 @@ MatrixMultiplication::MatrixMultiplication(Operation* p1, Operation* p2) {
 }
 
 MatrixMultiplication::MatrixMultiplication(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_matrix_multiplication"; // Are we ever going to use this->name_?
@@ -409,8 +413,8 @@ Convolution2D::Convolution2D(Operation* p1, Operation* p2, std::string padding, 
 }
 
 Convolution2D::Convolution2D(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     // TODO
     //this->padding_ = source->padding_;
     //this->strides_[0] = source->strides_[0];
@@ -473,8 +477,8 @@ Power::Power(Operation* p1, Operation* p2) {
 }
 
 Power::Power(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_power"; // Are we ever going to use this->name_?
@@ -536,8 +540,8 @@ Cast::Cast(Operation* p1) {
 }
 
 Cast::Cast(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_cast"; // Are we ever going to use this->name_?
@@ -602,8 +606,8 @@ SquareRoot::SquareRoot(Operation* p1, bool promotion) {
 }
 
 SquareRoot::SquareRoot(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_square_root"; // Are we ever going to use this->name_?
@@ -667,8 +671,8 @@ Exponential::Exponential(Operation* p1) {
 }
 
 Exponential::Exponential(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
-    this->computed_ = false;
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
+    this->computed_ = source->isComputed();
     this->parent1_ = nullptr;
     this->parent2_ = nullptr;
     this->name_ = "unnamed_exponential"; // Are we ever going to use this->name_?
@@ -775,7 +779,7 @@ Variable::Variable(Buffer* buf) {
 }
 
 Variable::Variable(Operation* source, Allocator* allocator) {
-    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), false));
+    this->buffer_ = allocator->newBuffer(new Buffer(source->getBuffer(), source->isComputed()));
     this->computed_ = true;
     this->name_ = "unnamed_variable"; // Are we ever going to use this->name_?
     this->type_ = "variable";

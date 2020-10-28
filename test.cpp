@@ -96,22 +96,19 @@ void graphTest() {
 
     t3 = exp(t3);
     t3 = multiply(t3, ct1); // Replacing variables maintains the graph.
-    /*Tensor t4 = power(t3, tConst); // Broadcasting with constants.
-    t4 = add(t4, t1); // Reuse of tensors maintains the graph (this is the third use of t1).
-    t4 = sub(t4, t2);
-    t4 = divide(t4, t1);
-    Tensor t5 = sqrt(t1);
-    Tensor t6 = exp(t2);
+    Tensor t4 = power(t3, tConst); // Broadcasting with constants.
+    t4 = add(t4, ct1); // Reuse of tensors maintains the graph (this is the third use of t1).
+    t4 = sub(t4, ct2);
+    t4 = divide(t4, ct1);
+    Tensor t5 = sqrt(ct1);
+    Tensor t6 = exp(ct2);
     Tensor t7 = add(t5, t6);
-    Tensor t8 = divide(t4, t7);*/
+    Tensor t8 = divide(t4, t7);
 
-    //t3.traceGraph();
+    vector<Tensor> leaves = { t4, t5 };
 
-    vector<Tensor> leaves = { t1, t2 };
-
-    Graph graph(t3, leaves, &a);
+    Graph graph(t8, leaves, &a);
     graph.traceGraph();
-    exit(1);
 
     vector<int> v3, v4;
 
@@ -120,18 +117,22 @@ void graphTest() {
         v4.push_back((i+1)*(i+1));
     }
 
-    Tensor ta(v3, s, &a);
-    Tensor tb(v4, s, &a);
-    Tensor tc({ -1 }, { -1 }, &a);
-
     map<string, Tensor> filler;
 
-    //graph.graphComputation(filler);
+    std::vector<Tensor> results = graph.graphComputation(filler);
 
-    //t8.print();
-    //t8.uproot();
+    results[0].print();
 
+    graph.uproot();
+
+
+    cout << "Graph uproot:" << endl;
     a.printStats();
+
+    cout << "-------------------------------" << endl;
+    a.uproot();
+    a.printStats();
+
 }
 
 void matrixMultiplication() {

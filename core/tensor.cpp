@@ -314,6 +314,7 @@ void Tensor::operate() {
             }
             else {
                 std::cerr << "ERROR in graph traversal: Orphaned Operation node!" << std::endl;
+                std::cout << "buf2_top: " << buf2_top << std::endl;
                 std::cout << "buf2_top->type_: " << buf2_top->type_ << std::endl;
                 assert(false);
             }

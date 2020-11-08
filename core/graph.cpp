@@ -21,6 +21,14 @@ Graph::Graph(Tensor& head, std::vector<Tensor>& leaves, Allocator* allocator) {
     createGraphFromOps(op_head, op_leaves, allocator);
 }
 
+Graph::Graph(Tensor& head, Allocator* allocator) {
+    createGraphFromOps(head.operation_, allocator);
+}
+
+Graph::~Graph() {
+    uproot();
+}
+
 void Graph::createGraphFromOps(Operation* head, std::vector<Operation*>& leaves, Allocator* allocator) {
     allocator_ = allocator;
 
@@ -71,6 +79,55 @@ void Graph::createGraphFromOps(Operation* head, std::vector<Operation*>& leaves,
                 traversal_stack.push(p2);
                 local_traversal_stack.push(allocator_->getLatestOperation());
             }
+        }
+    }
+}
+
+void Graph::createGraphFromOps(Operation* head, Allocator* allocator) {
+    allocator_ = allocator;
+
+    head->createSelf(head, allocator_);
+    heads_.push_back(allocator_->getLatestOperation());
+
+    // Traverse the operation graph
+    // and allocate copies of the operations and their buffers.
+    std::stack<Operation*> traversal_stack;
+    std::stack<Operation*> local_traversal_stack;
+    traversal_stack.push(head);
+    local_traversal_stack.push(allocator_->getLatestOperation());
+
+    // Working Operation for source graph traversal.
+    Operation* traversal_op;
+    // Working Operation for this graph during construction.
+    Operation* local_op;
+
+    // NOTE: Only supports binary trees. 
+    // Graph traversal. For every node, it makes a copy and copies it's connections
+    // using the newly allocated nodes.
+    while (traversal_stack.size() > 0) {
+        traversal_op = traversal_stack.top();
+        local_op = local_traversal_stack.top();
+
+        traversal_stack.pop();
+        local_traversal_stack.pop();
+
+        Operation* p1 = traversal_op->parent1_;
+        Operation* p2 = traversal_op->parent2_;
+
+        if (p1) {
+            p1->createSelf(p1, allocator_);
+            local_op->parent1_ = allocator_->getLatestOperation();
+
+            traversal_stack.push(p1);
+            local_traversal_stack.push(allocator_->getLatestOperation());
+        }
+
+        if (p2) {
+            p2->createSelf(p2, allocator_);
+            local_op->parent2_ = allocator_->getLatestOperation();
+
+            traversal_stack.push(p2);
+            local_traversal_stack.push(allocator_->getLatestOperation());
         }
     }
 }

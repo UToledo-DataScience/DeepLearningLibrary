@@ -11,6 +11,11 @@ namespace deeplib {
 class Buffer;
 class Allocator;
 
+// NOTE: Before adding too many more Operations, PLEASE
+//       figure out a system for creating new Operations
+//       and reducing the amount of maintenance adding a
+//       new Operation requires.
+
 // Abstract operation graph node class.
 //
 // Each Operation has two key functions:
@@ -52,8 +57,6 @@ class Operation {
     Operation* parent2_;
 
     Buffer* buffer_;
-    // Buffer specifically used for gradients.
-    Buffer* gradient_output_buffer_;
 
   public:
     Operation();
@@ -255,10 +258,6 @@ class Cast : public Operation {
 };
 
 class SquareRoot : public Operation {
-    // Tensors going through this operation can be promoted
-    // to float32 if they're signed and not a floating point tensor
-    bool promotion;
-
   public:
     SquareRoot(Operation* p, bool promotion=false);
     SquareRoot(Operation* source, Allocator* allocator);

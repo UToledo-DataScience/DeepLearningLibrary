@@ -256,18 +256,6 @@ void Multiplication::createSelf(Operation* source, Allocator* allocator) {
     allocator->newOperation(new Multiplication(source, allocator));
 }
 
-/*Buffer* Multiplication::gradient(Buffer* b1, Buffer* b2, Buffer* grad1, Buffer* grad2) {
-    if (!this->computed_)
-        this->buffer_ = this->operate();
-
-    this->gradient_computation_buffer_ = this->allocator_->newBuffer(new Buffer(this->buffer_, false));
-    this->gradient_output_buffer_ = this->allocator_->newBuffer(new Buffer(this->buffer_, false));
-
-    DataType dtype = b1->getDataType();
-
-    gradTemplateChoice<Multiplication>(this, b1, b2, grad1, grad2, dtype);
-}*/
-
 //-----------------------------------\\
 // class Division;                   \\
 //-----------------------------------\\
@@ -601,7 +589,6 @@ SquareRoot::SquareRoot(Operation* p1, bool promotion) {
     this->parent2_ = nullptr;
     this->name_ = "unnamed_square_root";
     this->type_ = "square_root";
-    this->promotion = promotion;
     this->ary_ = 1;
 }
 
@@ -629,10 +616,6 @@ Buffer* SquareRoot::operate() {
 
     Buffer* buf = this->parent1_->operate();
 
-    //DataType dtype;
-    //if (this->promotion)
-    //    dtype = DataType::FLOAT32;
-    //else
     DataType dtype = this->buffer_->getDataType();
 
     compTemplateChoice<SquareRoot>(this, buf, dtype);

@@ -105,28 +105,28 @@ void graphTest() {
     Tensor t7 = add(t5, t6);
     Tensor t8 = divide(t4, t7);
 
-    vector<Tensor> leaves = { t4, t5 };
+    {
+        vector<Tensor> leaves = { t4, t5 };
 
-    Graph graph(t8, leaves, &a);
-    graph.traceGraph();
+        Graph graph(t8, leaves, &a);
+        graph.traceGraph();
 
-    vector<int> v3, v4;
+        vector<int> v3, v4;
 
-    for (int i = 0; i < size; i++) {
-        v3.push_back((i+1)*(i+1));
-        v4.push_back((i+1)*(i+1));
+        for (int i = 0; i < size; i++) {
+            v3.push_back((i+1)*(i+1));
+            v4.push_back((i+1)*(i+1));
+        }
+
+        map<string, Tensor> filler;
+
+        std::vector<Tensor> results = graph.graphComputation(filler);
+
+        if (size <= 10)
+            results[0].print();
     }
 
-    map<string, Tensor> filler;
-
-    std::vector<Tensor> results = graph.graphComputation(filler);
-
-    results[0].print();
-
-    graph.uproot();
-
-
-    cout << "Graph uproot:" << endl;
+    cout << "Graph (destructor) uproot:" << endl;
     a.printStats();
 
     cout << "-------------------------------" << endl;
